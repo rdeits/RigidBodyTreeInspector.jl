@@ -4,6 +4,7 @@ GeometryTypes
 DataStructures
 Reactive v0.3.3
 
-git@github.com:rdeits/DrakeVisualizer.jl.git 0766c8c93da57dc35dd6290ca4fc16225be01cf7
-git@github.com:tkoolen/RigidBodyDynamics.jl.git f3906c3da5df4f26f3e7a558115cf5d1801198ef
+git@github.com:rdeits/PyLCM.jl.git ab7b17c4a5b6b019bb89419c4f109f108399a4eb
+git@github.com:rdeits/DrakeVisualizer.jl.git e808a52eb9cb28176c0d7ff5741e57962fa73883
+git@github.com:rdeits/RigidBodyDynamics.jl.git 3e03b1337add7410d0656c849c54085c16c05ab0
 git@github.com:rdeits/Quaternions.jl.git d183ac251c7277c287c8a660fd29b21313841c09
