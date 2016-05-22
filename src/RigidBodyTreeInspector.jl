@@ -9,9 +9,10 @@ import GeometryTypes: HyperRectangle
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
 import Interact
+import Interpolations: interpolate, Linear, Gridded
 import Base: convert
 
-export create_geometry, inspect, Visualizer, draw
+export create_geometry, inspect, Visualizer, draw, animate
 
 function rotation_from_x_axis{T}(translation::Vec{3, T})
     xhat = Vec{3, T}(1, 0, 0)
@@ -150,6 +151,22 @@ function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=tr
         setdirty!(state)
         draw(vis, state)
         end, [Interact.signal(w) for w in widgets]...)
+end
+
+import Base: one
+one(::Type{Array{Float64,1}}) = 1. # FIXME: this is a hack to get gridded interpolation from Interpolations to work on vectors
+
+function animate(vis::Visualizer, mechanism::Mechanism{Float64}, times::Vector{Float64}, configurations::Vector{Vector{Float64}};
+    fps::Float64 = 30., realtimerate::Float64 = 1.)
+    state = MechanismState(Float64, mechanism)
+    dt = 1. / fps
+    interpolated_configurations = interpolate((times,), configurations, Gridded(Linear()))
+    for t in times[1] : dt : times[end]
+        tic()
+        set_configuration!(state, interpolated_configurations[t])
+        RigidBodyTreeInspector.draw(vis, state)
+        sleep(max(dt - toq(), 0) / realtimerate)
+    end
 end
 
 end
