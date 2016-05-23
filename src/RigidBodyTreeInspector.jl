@@ -10,7 +10,7 @@ import DataStructures: OrderedDict
 import ColorTypes: RGBA
 import Interact
 import Interpolations: interpolate, Linear, Gridded
-import Base: convert
+import Base: convert, one
 
 export create_geometry, inspect, Visualizer, draw, animate
 
@@ -62,13 +62,16 @@ function inertial_prism_dimensions(mass, axis_inertias)
     return √(squared_lengths)
 end
 
-function inertial_prism(spatial_inertia)
+function inertial_prism(body)
+    com_frame = CartesianFrame3D("com")
+    com_to_body = Transform3D(com_frame, body.frame, body.inertia.centerOfMass)
+    spatial_inertia = transform(body.inertia, inv(com_to_body))
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
     axes = e.vectors
     lengths = inertial_prism_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperRectangle(Vec{3, Float64}(-lengths/2), Vec{3, Float64}(lengths))
-    return geometry, AffineTransform(axes', convert(Vector, spatial_inertia.centerOfMass))
+    return geometry, AffineTransform(axes', convert(Vector, body.inertia.centerOfMass))
 end
 
 function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, randomize_colors::Bool=true)
@@ -82,7 +85,7 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
         if show_inertias
-            prism, tform = inertial_prism(body.inertia)
+            prism, tform = inertial_prism(body)
             push!(geometries, GeometryData(prism, tform, color))
 
             a, theta = rotation_from_x_axis(body.inertia.centerOfMass)
@@ -114,7 +117,7 @@ convert(::Type{AffineTransform}, T::Transform3D) = tformtranslate(convert(Vector
 
 function draw(vis::Visualizer, state::MechanismState)
     bodies = [v.vertexData for v in state.mechanism.toposortedTree[2:end]]
-    origin_transforms = map(body -> convert(AffineTransform, transform_to_root(state, body.frame)), bodies)
+    origin_transforms = map(body -> convert(AffineTransform, transform_to_root(state, RigidBodyDynamics.default_frame(state.mechanism, body))), bodies)
     draw(vis, origin_transforms)
 end
 
@@ -153,8 +156,7 @@ function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=tr
         end, [Interact.signal(w) for w in widgets]...)
 end
 
-import Base: one
-one(::Type{Array{Float64,1}}) = 1. # FIXME: this is a hack to get gridded interpolation from Interpolations to work on vectors
+one(::Type{Array{Float64,1}}) = 1.
 
 function animate(vis::Visualizer, mechanism::Mechanism{Float64}, times::Vector{Float64}, configurations::Vector{Vector{Float64}};
     fps::Float64 = 30., realtimerate::Float64 = 1.)
@@ -168,5 +170,8 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64}, times::Vector{F
         sleep(max(dt - toq(), 0) / realtimerate)
     end
 end
+
+animate(mechanism::Mechanism, times::Vector{Float64}, configurations::Vector{Vector{Float64}}) = animate(Visualizer(mechanism), mechanism, times, configurations)
+
 
 end
