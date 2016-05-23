@@ -3,6 +3,7 @@ Interact
 GeometryTypes
 DataStructures
 Reactive v0.3.3
+Interpolations
 
 git@github.com:rdeits/PyLCM.jl.git ab7b17c4a5b6b019bb89419c4f109f108399a4eb
 git@github.com:rdeits/DrakeVisualizer.jl.git e808a52eb9cb28176c0d7ff5741e57962fa73883
