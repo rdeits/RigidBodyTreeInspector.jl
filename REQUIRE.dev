@@ -4,8 +4,8 @@ GeometryTypes
 DataStructures
 Reactive 0.3.3
 Interpolations
+PyLCM 0.0.3
 
-git@github.com:rdeits/PyLCM.jl.git d90a709cc5b6a12c4de0ed400ceb851ea47394af
 git@github.com:rdeits/DrakeVisualizer.jl.git e808a52eb9cb28176c0d7ff5741e57962fa73883
 git@github.com:rdeits/RigidBodyDynamics.jl.git 4f38e6fdcb600817c0914ad3b3835b5ac9f4a6a3
 git@github.com:rdeits/Quaternions.jl.git d183ac251c7277c287c8a660fd29b21313841c09
