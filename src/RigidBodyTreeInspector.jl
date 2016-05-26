@@ -2,8 +2,8 @@ module RigidBodyTreeInspector
 
 using RigidBodyDynamics
 import Quaternions: axis, angle, qrotation
-import DrakeVisualizer: Visualizer, draw, Link, GeometryData
-import FixedSizeArrays: Vec
+import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid
+import FixedSizeArrays: Vec, Point
 import AffineTransforms: AffineTransform, tformrotate, tformtranslate, tformeye
 import GeometryTypes: HyperRectangle
 import DataStructures: OrderedDict
@@ -25,15 +25,15 @@ function rotation_from_x_axis{T}(translation::Vec{3, T})
     return axis, angle
 end
 
-function inertial_prism_dimensions(mass, axis_inertias)
-    # Ix = m/12 (dy^2 + dz^2)
-    # Iy = m/12 (dx^2 + dz^2)
-    # Iz = m/12 (dx^2 + dy^2)
+function inertial_ellipsoid_dimensions(mass, axis_inertias)
+    # Ix = m/5 (dy^2 + dz^2)
+    # Iy = m/5 (dx^2 + dz^2)
+    # Iz = m/5 (dx^2 + dy^2)
     #
     # let A = [0 1 1
     #          1 0 1
     #          1 1 0]
-    # b = 12 / m * [Ix; Iy; Iz]
+    # b = 5 / m * [Ix; Iy; Iz]
     # Then A \ b = [dx^2; dy^2; dz^2]
     #
     # This is only valid if the axis inertias obey the triangle inequalities:
@@ -46,11 +46,11 @@ function inertial_prism_dimensions(mass, axis_inertias)
 
     for i = 1:3
         if axis_inertias[i] > dot(A[:,i], axis_inertias)[1]
-            warn("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial prism is not well-defined.")
+            warn("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial ellipsoid is not well-defined.")
         end
     end
 
-    squared_lengths = A \ (12. / mass * axis_inertias)
+    squared_lengths = A \ (5. / mass * axis_inertias)
 
     # If the triangle inequality was violated, we'll get negative squared lengths.
     # Instead, just make them very small so we can try to do something reasonable.
@@ -62,15 +62,15 @@ function inertial_prism_dimensions(mass, axis_inertias)
     return √(squared_lengths)
 end
 
-function inertial_prism(body)
+function inertial_ellipsoid(body)
     com_frame = CartesianFrame3D("com")
     com_to_body = Transform3D(com_frame, body.frame, body.inertia.centerOfMass)
     spatial_inertia = transform(body.inertia, inv(com_to_body))
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
     axes = e.vectors
-    lengths = inertial_prism_dimensions(spatial_inertia.mass, principal_inertias)
-    geometry = HyperRectangle(Vec{3, Float64}(-lengths/2), Vec{3, Float64}(lengths))
+    radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
+    geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
     return geometry, AffineTransform(axes', convert(Vector, body.inertia.centerOfMass))
 end
 
@@ -85,13 +85,13 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
         if show_inertias
-            prism, tform = inertial_prism(body)
+            prism, tform = inertial_ellipsoid(body)
             push!(geometries, GeometryData(prism, tform, color))
 
             a, theta = rotation_from_x_axis(body.inertia.centerOfMass)
             joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
             geom_length = norm(body.inertia.centerOfMass)
-            push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/2, -box_width/2), Vec(geom_length, box_width, box_width)), joint_to_geometry_origin, color))
+            push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/4, -box_width/4), Vec(geom_length, box_width/2, box_width/2)), joint_to_geometry_origin, color))
         else
             push!(geometries, GeometryData(HyperRectangle(Vec{3, Float64}(-box_width), Vec{3, Float64}(box_width * 2)), tformeye(3), color))
         end
