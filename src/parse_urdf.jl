@@ -11,47 +11,47 @@ function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::ASCIIStrin
     [T(parse(str)) for str in split(usedefault ? default : attribute(e, name), " ")]
 end
 
-function parse_pose{T}(::Type{T}, xmlPose::Union{Void, XMLElement})
-    if xmlPose == nothing
+function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
+    if xml_pose == nothing
         rot = one(Quaternion{T})
         trans = zero(Vec{3, T})
     else
-        rpy = parse_vector(T, xmlPose, "rpy", "0 0 0")
+        rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
         rot = rpy_to_quaternion(rpy)
-        trans = Vec(parse_vector(T, xmlPose, "xyz", "0 0 0"))
+        trans = Vec(parse_vector(T, xml_pose, "xyz", "0 0 0"))
     end
     rot, trans
 end
 
-function parse_geometry{T}(::Type{T}, xmlGeometry::XMLElement)
+function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     geometries = AbstractGeometry{3, T}[]
-    for xml_cylinder in get_elements_by_tagname(xmlGeometry, "cylinder")
+    for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
         radius = parse_scalar(Float64, xml_cylinder, "radius")
         push!(geometries, HyperCylinder{3, Float64}(length, radius))
     end
-    for xml_box in get_elements_by_tagname(xmlGeometry, "box")
+    for xml_box in get_elements_by_tagname(xml_geometry, "box")
         size = Vec(parse_vector(Float64, xml_box, "size", "0 0 0"))
         push!(geometries, HyperRectangle(-size / 2, size))
     end
-    for xml_sphere in get_elements_by_tagname(xmlGeometry, "sphere")
+    for xml_sphere in get_elements_by_tagname(xml_geometry, "sphere")
         radius = parse_scalar(Float64, xml_sphere, "radius")
         push!(geometries, HyperSphere(zero(Point{3, Float64}), radius))
     end
     geometries
 end
 
-function parse_material{T}(::Type{T}, xmlMaterial, namedColors::Dict{ASCIIString, RGBA{T}})
+function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIString, RGBA{T}})
     default = "0.7 0.7 0.7 1."
-    if xmlMaterial == nothing
+    if xml_material == nothing
         color = RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
     else
-        xmlColor = find_element(xmlMaterial, "color")
-        name = attribute(xmlMaterial, "name")
-        if xmlColor != nothing || !haskey(namedColors, name) # be lenient when it comes to missing color definitions
-            color = RGBA{T}(parse_vector(T, xmlColor, "rgba", default)...)
+        xml_color = find_element(xml_material, "color")
+        name = attribute(xml_material, "name")
+        if xml_color != nothing || !haskey(named_colors, name) # be lenient when it comes to missing color definitions
+            color = RGBA{T}(parse_vector(T, xml_color, "rgba", default)...)
         else
-            color = namedColors[name]
+            color = named_colors[name]
         end
     end
     color::RGBA{T}
@@ -61,29 +61,29 @@ function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
-    xmlLinks = get_elements_by_tagname(xroot, "link")
-    xmlMaterials = get_elements_by_tagname(xroot, "material")
-    namedColors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::RGBA{Float64} for m in xmlMaterials]
+    xml_links = get_elements_by_tagname(xroot, "link")
+    xml_materials = get_elements_by_tagname(xroot, "material")
+    named_colors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials]
     bods = bodies(mechanism)
-    geometrydata = GeometryData[]
-    visdata = Link[]
-    for xmlLink in xmlLinks
-        xmlVisuals = get_elements_by_tagname(xmlLink, "visual")
-        linkname = attribute(xmlLink, "name")
+    geometry_data = GeometryData[]
+    vis_data = Link[]
+    for xml_link in xml_links
+        xml_visuals = get_elements_by_tagname(xml_link, "visual")
+        linkname = attribute(xml_link, "name")
         body = bods[findfirst(b -> RigidBodyDynamics.name(b) == linkname, bods)]
         if !isroot(body) # geometry attached to world is currently not supported. Also, this is the only reason to have the Mechanism argument for this function
-            geometrydata = GeometryData[]
-            for xmlVisual in xmlVisuals
-                rot, trans = RigidBodyDynamics.parse_pose(Float64, find_element(xmlVisual, "origin"))
+            geometry_data = GeometryData[]
+            for xml_visual in xml_visuals
+                rot, trans = RigidBodyDynamics.parse_pose(Float64, find_element(xml_visual, "origin"))
                 transform = AffineTransform(Array(rotationmatrix(rot)), Array(trans))
-                geometries = parse_geometry(Float64, find_element(xmlVisual, "geometry"))
-                color = parse_material(Float64, find_element(xmlVisual, "material"), namedColors)
+                geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
+                color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
                 for geometry in geometries
-                    push!(geometrydata, GeometryData(geometry, transform, color))
+                    push!(geometry_data, GeometryData(geometry, transform, color))
                 end
             end
-            push!(visdata, Link(geometrydata, linkname))
+            push!(vis_data, Link(geometry_data, linkname))
         end
     end
-    return Visualizer(visdata)
+    return Visualizer(vis_data)
 end
