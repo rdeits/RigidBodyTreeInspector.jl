@@ -12,6 +12,8 @@ import Interact
 import Interpolations: interpolate, Linear, Gridded
 import Base: convert, one
 import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribute, find_element, name
+import MeshIO
+using FileIO
 
 export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 
@@ -131,12 +133,16 @@ function joint_configuration{T}(jointType::RigidBodyDynamics.QuaternionFloating,
     vcat([quat.s; quat.v1; quat.v2; quat.v3], q[4:6])
 end
 joint_configuration{T}(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis, sliders::NTuple{1, T}) = collect(sliders)
+joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
 num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
+num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
-    vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+function inspect(mechanism, vis::Visualizer=nothing; show_inertias::Bool=false, randomize_colors::Bool=true)
+    if vis == nothing
+        vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+    end
     state = MechanismState(Float64, mechanism)
     mech_joints = [v.edgeToParentData for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
@@ -146,7 +152,7 @@ function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=tr
             push!(slider_names, "$(joint.name).$(j)")
         end
     end
-    widgets = [Interact.widget(linspace(-pi, pi), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
+    widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
     map(display, widgets)
     map((q...) -> begin
         slider_index = 1

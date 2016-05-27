@@ -24,7 +24,7 @@ function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
-    geometries = AbstractGeometry{3, T}[]
+    geometries = AbstractGeometry[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
         radius = parse_scalar(Float64, xml_cylinder, "radius")
@@ -37,6 +37,13 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     for xml_sphere in get_elements_by_tagname(xml_geometry, "sphere")
         radius = parse_scalar(Float64, xml_sphere, "radius")
         push!(geometries, HyperSphere(zero(Point{3, Float64}), radius))
+    end
+    for xml_mesh in get_elements_by_tagname(xml_geometry, "mesh")
+        filename = attribute(xml_mesh, "filename")
+        filename = replace(filename, "package://", "/Users/rdeits/locomotion/drake-distro/drake/examples/")
+        filename = replace(filename, r".dae$", ".obj")
+        mesh = load(filename)
+        push!(geometries, mesh)
     end
     geometries
 end
