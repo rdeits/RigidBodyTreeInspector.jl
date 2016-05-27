@@ -11,8 +11,9 @@ import ColorTypes: RGBA
 import Interact
 import Interpolations: interpolate, Linear, Gridded
 import Base: convert, one
+import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribute, find_element
 
-export create_geometry, inspect, Visualizer, draw, animate
+export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 
 function rotation_from_x_axis{T}(translation::Vec{3, T})
     xhat = Vec{3, T}(1, 0, 0)
@@ -173,5 +174,6 @@ end
 
 animate(mechanism::Mechanism, times::Vector{Float64}, configurations::Vector{Vector{Float64}}) = animate(Visualizer(mechanism), mechanism, times, configurations)
 
+include("parse_urdf.jl")
 
 end
