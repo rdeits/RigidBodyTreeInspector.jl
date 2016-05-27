@@ -109,12 +109,12 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         end
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
-        if show_inertias && !isroot(body)
+        if show_inertias && !isroot(body) && body.inertia.mass >= 1e-3
             ellipsoid, tform = inertial_ellipsoid(body)
             push!(geometries, GeometryData(ellipsoid, tform, color))
 
-            geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
-            push!(geometries, GeometryData(geom, tform, color))
+            # geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
+            # push!(geometries, GeometryData(geom, tform, color))
         else
             push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
         end
