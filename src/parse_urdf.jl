@@ -64,7 +64,7 @@ function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIStri
     color::RGBA{T}
 end
 
-function parse_urdf(filename::ASCIIString)
+function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
@@ -88,5 +88,7 @@ function parse_urdf(filename::ASCIIString)
         end
         push!(vis_data, Link(geometry_data, linkname))
     end
+    sorted_body_names = [v.vertexData.name for v in mechanism.toposortedTree]
+    sort!(vis_data, by=link -> findfirst(sorted_body_names, link.name))
     return Visualizer(vis_data)
 end
