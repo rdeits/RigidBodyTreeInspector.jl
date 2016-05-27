@@ -78,6 +78,7 @@ function inertial_ellipsoid(body)
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
     axes = e.vectors
+    axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes for a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
     return geometry, AffineTransform(axes', convert(Vector, body.inertia.centerOfMass))
