@@ -57,33 +57,29 @@ function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIStri
     color::RGBA{T}
 end
 
-function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
+function parse_urdf(filename::ASCIIString)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
     xml_links = get_elements_by_tagname(xroot, "link")
     xml_materials = get_elements_by_tagname(xroot, "material")
     named_colors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials]
-    bods = bodies(mechanism)
     geometry_data = GeometryData[]
     vis_data = Link[]
     for xml_link in xml_links
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
-        body = bods[findfirst(b -> RigidBodyDynamics.name(b) == linkname, bods)]
-        if !isroot(body) # geometry attached to world is currently not supported. Also, this is the only reason to have the Mechanism argument for this function
-            geometry_data = GeometryData[]
-            for xml_visual in xml_visuals
-                rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
-                transform = AffineTransform(Array(rotationmatrix(rot)), Array(trans))
-                geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
-                color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
-                for geometry in geometries
-                    push!(geometry_data, GeometryData(geometry, transform, color))
-                end
+        geometry_data = GeometryData[]
+        for xml_visual in xml_visuals
+            rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
+            transform = AffineTransform(Array(rotationmatrix(rot)), Array(trans))
+            geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
+            color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
+            for geometry in geometries
+                push!(geometry_data, GeometryData(geometry, transform, color))
             end
-            push!(vis_data, Link(geometry_data, linkname))
         end
+        push!(vis_data, Link(geometry_data, linkname))
     end
     return Visualizer(vis_data)
 end

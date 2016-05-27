@@ -1,7 +1,7 @@
 module RigidBodyTreeInspector
 
 using RigidBodyDynamics
-import Quaternions: axis, angle, qrotation, rotationmatrix
+import Quaternions: axis, angle, qrotation, rotationmatrix, Quaternion
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid, HyperCylinder
 import FixedSizeArrays: Vec, Point
 import AffineTransforms: AffineTransform, tformrotate, tformtranslate, tformeye
@@ -77,7 +77,7 @@ end
 
 function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, randomize_colors::Bool=true)
     vis_data = OrderedDict{RigidBody, Link}()
-    for vertex in mechanism.toposortedTree[2:end]
+    for vertex in mechanism.toposortedTree
         if randomize_colors
             color = RGBA{Float64}(rand(3)..., 0.5)
         else
@@ -85,7 +85,7 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         end
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
-        if show_inertias
+        if show_inertias && !isroot(body)
             prism, tform = inertial_ellipsoid(body)
             push!(geometries, GeometryData(prism, tform, color))
 
@@ -96,13 +96,15 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         else
             push!(geometries, GeometryData(HyperRectangle(Vec{3, Float64}(-box_width), Vec{3, Float64}(box_width * 2)), tformeye(3), color))
         end
-        for child in vertex.children
-            joint = child.edgeToParentData
-            joint_to_joint = mechanism.jointToJointTransforms[joint]
-            a, theta = rotation_from_x_axis(joint_to_joint.trans)
-            joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
-            geom_length = norm(joint_to_joint.trans)
-            push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/2, -box_width/2), Vec(geom_length, box_width, box_width)), joint_to_geometry_origin, color))
+        if !isroot(body)
+            for child in vertex.children
+                joint = child.edgeToParentData
+                joint_to_joint = mechanism.jointToJointTransforms[joint]
+                a, theta = rotation_from_x_axis(joint_to_joint.trans)
+                joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
+                geom_length = norm(joint_to_joint.trans)
+                push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/2, -box_width/2), Vec(geom_length, box_width, box_width)), joint_to_geometry_origin, color))
+            end
         end
         vis_data[body] = Link(geometries, body.frame.name)
     end
@@ -117,7 +119,7 @@ end
 convert(::Type{AffineTransform}, T::Transform3D) = tformtranslate(convert(Vector, T.trans)) * tformrotate(axis(T.rot), angle(T.rot))
 
 function draw(vis::Visualizer, state::MechanismState)
-    bodies = [v.vertexData for v in state.mechanism.toposortedTree[2:end]]
+    bodies = [v.vertexData for v in state.mechanism.toposortedTree]
     origin_transforms = map(body -> convert(AffineTransform, transform_to_root(state, RigidBodyDynamics.default_frame(state.mechanism, body))), bodies)
     draw(vis, origin_transforms)
 end

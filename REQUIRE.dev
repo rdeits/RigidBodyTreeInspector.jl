@@ -7,6 +7,6 @@ Interpolations
 PyLCM 0.0.3
 LightXML
 
-git@github.com:rdeits/DrakeVisualizer.jl.git 778c57db8851eb5d886e2b23e9a7e5287603b9a9
+git@github.com:rdeits/DrakeVisualizer.jl.git 3842c720e00e570e7c7db0b8f7bdfbac1a01b12d
 git@github.com:tkoolen/RigidBodyDynamics.jl.git 0a4bc94a229a4997c2f601f28ad16e9b4bd57d0e
 git@github.com:rdeits/Quaternions.jl.git d183ac251c7277c287c8a660fd29b21313841c09
