@@ -90,7 +90,10 @@ function create_geometry_for_translation{T}(translation::Vec{3, T}, radius)
     return HyperCylinder{3, Float64}(geom_length, radius), joint_to_geometry_origin
 end
 
-function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, randomize_colors::Bool=true)
+function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
+    maximum_joint_to_joint_length = maximum([norm(mechanism.jointToJointTransforms[joint].trans) for joint in joints(mechanism)])
+    box_width = 0.05 * maximum_joint_to_joint_length
+
     vis_data = OrderedDict{RigidBody, Link}()
     for vertex in mechanism.toposortedTree
         if randomize_colors
