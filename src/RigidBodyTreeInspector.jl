@@ -17,11 +17,11 @@ using FileIO
 
 export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 
-function rotation_from_x_axis{T}(translation::Vec{3, T})
-    xhat = Vec{3, T}(1, 0, 0)
-    v = translation / norm(translation)
-    costheta = dot(xhat, v)
-    p = cross(xhat, v)
+function rotation_between{T}(from::Vec{3, T}, to::Vec{3, T})
+    from /= norm(from)
+    to /= norm(to)
+    costheta = dot(from, to)
+    p = cross(from, to)
     sintheta = norm(p)
     if sintheta > 0
         axis = p / sintheta
@@ -31,6 +31,8 @@ function rotation_from_x_axis{T}(translation::Vec{3, T})
         return Vec{3, T}(1,0,0), 0.0
     end
 end
+
+rotation_from_x_axis{T}(translation::Vec{3, T}) = rotation_between(Vec{3, T}(1,0,0), translation)
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix = m/5 (dy^2 + dz^2)
@@ -81,6 +83,13 @@ function inertial_ellipsoid(body)
     return geometry, AffineTransform(axes', convert(Vector, body.inertia.centerOfMass))
 end
 
+function create_geometry_for_translation{T}(translation::Vec{3, T}, radius)
+    a, theta = rotation_from_x_axis(translation)
+    geom_length = norm(translation)
+    joint_to_geometry_origin = tformrotate(convert(Vector, a), theta) * tformtranslate([geom_length/2; 0; 0]) * tformrotate([0; pi/2; 0])
+    return HyperCylinder{3, Float64}(geom_length, radius), joint_to_geometry_origin
+end
+
 function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, randomize_colors::Bool=true)
     vis_data = OrderedDict{RigidBody, Link}()
     for vertex in mechanism.toposortedTree
@@ -92,24 +101,19 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
         if show_inertias && !isroot(body)
-            prism, tform = inertial_ellipsoid(body)
-            push!(geometries, GeometryData(prism, tform, color))
+            ellipsoid, tform = inertial_ellipsoid(body)
+            push!(geometries, GeometryData(ellipsoid, tform, color))
 
-            a, theta = rotation_from_x_axis(body.inertia.centerOfMass)
-            joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
-            geom_length = norm(body.inertia.centerOfMass)
-            push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/4, -box_width/4), Vec(geom_length, box_width/2, box_width/2)), joint_to_geometry_origin, color))
-        else
-            push!(geometries, GeometryData(HyperRectangle(Vec{3, Float64}(-box_width), Vec{3, Float64}(box_width * 2)), tformeye(3), color))
+            geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
+            push!(geometries, GeometryData(geom, tform, color))
         end
+        push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
         if !isroot(body)
             for child in vertex.children
                 joint = child.edgeToParentData
                 joint_to_joint = mechanism.jointToJointTransforms[joint]
-                a, theta = rotation_from_x_axis(joint_to_joint.trans)
-                joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
-                geom_length = norm(joint_to_joint.trans)
-                push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/2, -box_width/2), Vec(geom_length, box_width, box_width)), joint_to_geometry_origin, color))
+                geom, tform = create_geometry_for_translation(joint_to_joint.trans, box_width/2)
+                push!(geometries, GeometryData(geom, tform, color))
             end
         end
         vis_data[body] = Link(geometries, body.frame.name)
