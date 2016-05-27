@@ -23,9 +23,14 @@ function rotation_from_x_axis{T}(translation::Vec{3, T})
     costheta = dot(xhat, v)
     p = cross(xhat, v)
     sintheta = norm(p)
-    axis = p / sintheta
-    angle = atan2(sintheta, costheta)
-    return axis, angle
+    if sintheta > 0
+        axis = p / sintheta
+        angle = atan2(sintheta, costheta)
+        @show axis angle
+        return axis, angle
+    else
+        return Vec{3, T}(1,0,0), 0.0
+    end
 end
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
@@ -139,7 +144,7 @@ num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
 num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function inspect(mechanism, vis::Visualizer=nothing; show_inertias::Bool=false, randomize_colors::Bool=true)
+function inspect(mechanism, vis=nothing; show_inertias::Bool=false, randomize_colors::Bool=true)
     if vis == nothing
         vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
     end
