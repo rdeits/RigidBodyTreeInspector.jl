@@ -24,7 +24,7 @@ function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
-    geometries = AbstractGeometry{3, T}[]
+    geometries = AbstractGeometry[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
         radius = parse_scalar(Float64, xml_cylinder, "radius")
@@ -37,6 +37,13 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     for xml_sphere in get_elements_by_tagname(xml_geometry, "sphere")
         radius = parse_scalar(Float64, xml_sphere, "radius")
         push!(geometries, HyperSphere(zero(Point{3, Float64}), radius))
+    end
+    for xml_mesh in get_elements_by_tagname(xml_geometry, "mesh")
+        filename = attribute(xml_mesh, "filename")
+        filename = replace(filename, "package://", "/Users/rdeits/locomotion/drake-distro/drake/examples/")
+        filename = replace(filename, r".dae$", ".obj")
+        mesh = load(filename)
+        push!(geometries, mesh)
     end
     geometries
 end
@@ -57,7 +64,7 @@ function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIStri
     color::RGBA{T}
 end
 
-function parse_urdf(filename::ASCIIString)
+function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
@@ -81,5 +88,7 @@ function parse_urdf(filename::ASCIIString)
         end
         push!(vis_data, Link(geometry_data, linkname))
     end
+    sorted_body_names = [v.vertexData.name for v in mechanism.toposortedTree]
+    sort!(vis_data, by=link -> findfirst(sorted_body_names, link.name))
     return Visualizer(vis_data)
 end

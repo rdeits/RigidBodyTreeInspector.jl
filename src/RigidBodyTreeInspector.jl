@@ -12,19 +12,27 @@ import Interact
 import Interpolations: interpolate, Linear, Gridded
 import Base: convert, one
 import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribute, find_element, name
+import MeshIO
+using FileIO
 
 export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 
-function rotation_from_x_axis{T}(translation::Vec{3, T})
-    xhat = Vec{3, T}(1, 0, 0)
-    v = translation / norm(translation)
-    costheta = dot(xhat, v)
-    p = cross(xhat, v)
+function rotation_between{T}(from::Vec{3, T}, to::Vec{3, T})
+    from /= norm(from)
+    to /= norm(to)
+    costheta = dot(from, to)
+    p = cross(from, to)
     sintheta = norm(p)
-    axis = p / sintheta
-    angle = atan2(sintheta, costheta)
-    return axis, angle
+    if sintheta > 0
+        axis = p / sintheta
+        angle = atan2(sintheta, costheta)
+        return axis, angle
+    else
+        return Vec{3, T}(1,0,0), 0.0
+    end
 end
+
+rotation_from_x_axis{T}(translation::Vec{3, T}) = rotation_between(Vec{3, T}(1,0,0), translation)
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix = m/5 (dy^2 + dz^2)
@@ -42,24 +50,29 @@ function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix + Iz >= Iy
     # Iy + Iz >= Ix
 
+    # Ix - Iy = m/5 (dy^2 - dx^2)
+    # Ix - Iy + Iz = m/5 (2*dy^2)
+    # dy^2 = 0.5 (Ix - Iy + Iz) * 5/m
 
-    A = [0. 1 1; 1 0 1; 1 1 0]
+
+    squared_lengths = 0.5 * 5.0 / mass *
+        [-axis_inertias[1] + axis_inertias[2] + axis_inertias[3];
+          axis_inertias[1] - axis_inertias[2] + axis_inertias[3];
+          axis_inertias[1] + axis_inertias[2] - axis_inertias[3]]
 
     for i = 1:3
-        if axis_inertias[i] > dot(A[:,i], axis_inertias)[1]
-            warn("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial ellipsoid is not well-defined.")
+        total_inertia_of_other_axes = zero(axis_inertias[1])
+        for j = 1:3
+            if i == j
+                continue
+            end
+            total_inertia_of_other_axes += axis_inertias[j]
+        end
+        if axis_inertias[i] > total_inertia_of_other_axes
+            error("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial ellipsoid is not well-defined.")
         end
     end
 
-    squared_lengths = A \ (5. / mass * axis_inertias)
-
-    # If the triangle inequality was violated, we'll get negative squared lengths.
-    # Instead, just make them very small so we can try to do something reasonable.
-    for (i, l) in enumerate(squared_lengths)
-        if l < 0
-            squared_lengths[i] = 0.01 * maximum(squared_lengths)
-        end
-    end
     return √(squared_lengths)
 end
 
@@ -70,12 +83,23 @@ function inertial_ellipsoid(body)
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
     axes = e.vectors
+    axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    return geometry, AffineTransform(axes', convert(Vector, body.inertia.centerOfMass))
+    return geometry, AffineTransform(axes, convert(Vector, body.inertia.centerOfMass))
 end
 
-function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, randomize_colors::Bool=true)
+function create_geometry_for_translation{T}(translation::Vec{3, T}, radius)
+    a, theta = rotation_from_x_axis(translation)
+    geom_length = norm(translation)
+    joint_to_geometry_origin = tformrotate(convert(Vector, a), theta) * tformtranslate([geom_length/2; 0; 0]) * tformrotate([0; pi/2; 0])
+    return HyperCylinder{3, Float64}(geom_length, radius), joint_to_geometry_origin
+end
+
+function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
+    maximum_joint_to_joint_length = maximum([norm(mechanism.jointToJointTransforms[joint].trans) for joint in joints(mechanism)])
+    box_width = 0.05 * maximum_joint_to_joint_length
+
     vis_data = OrderedDict{RigidBody, Link}()
     for vertex in mechanism.toposortedTree
         if randomize_colors
@@ -85,25 +109,21 @@ function create_geometry(mechanism; box_width=0.05, show_inertias::Bool=false, r
         end
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
-        if show_inertias && !isroot(body)
-            prism, tform = inertial_ellipsoid(body)
-            push!(geometries, GeometryData(prism, tform, color))
+        if show_inertias && !isroot(body) && body.inertia.mass >= 1e-3
+            ellipsoid, tform = inertial_ellipsoid(body)
+            push!(geometries, GeometryData(ellipsoid, tform, color))
 
-            a, theta = rotation_from_x_axis(body.inertia.centerOfMass)
-            joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
-            geom_length = norm(body.inertia.centerOfMass)
-            push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/4, -box_width/4), Vec(geom_length, box_width/2, box_width/2)), joint_to_geometry_origin, color))
+            # geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
+            # push!(geometries, GeometryData(geom, tform, color))
         else
-            push!(geometries, GeometryData(HyperRectangle(Vec{3, Float64}(-box_width), Vec{3, Float64}(box_width * 2)), tformeye(3), color))
+            push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
         end
         if !isroot(body)
             for child in vertex.children
                 joint = child.edgeToParentData
                 joint_to_joint = mechanism.jointToJointTransforms[joint]
-                a, theta = rotation_from_x_axis(joint_to_joint.trans)
-                joint_to_geometry_origin = tformrotate(convert(Vector, a), theta)
-                geom_length = norm(joint_to_joint.trans)
-                push!(geometries, GeometryData(HyperRectangle(Vec(0., -box_width/2, -box_width/2), Vec(geom_length, box_width, box_width)), joint_to_geometry_origin, color))
+                geom, tform = create_geometry_for_translation(joint_to_joint.trans, box_width/2)
+                push!(geometries, GeometryData(geom, tform, color))
             end
         end
         vis_data[body] = Link(geometries, body.frame.name)
@@ -131,12 +151,16 @@ function joint_configuration{T}(jointType::RigidBodyDynamics.QuaternionFloating,
     vcat([quat.s; quat.v1; quat.v2; quat.v3], q[4:6])
 end
 joint_configuration{T}(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis, sliders::NTuple{1, T}) = collect(sliders)
+joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
 num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
+num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
-    vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+function inspect(mechanism, vis=nothing; show_inertias::Bool=false, randomize_colors::Bool=true)
+    if vis == nothing
+        vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+    end
     state = MechanismState(Float64, mechanism)
     mech_joints = [v.edgeToParentData for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
@@ -146,7 +170,7 @@ function inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=tr
             push!(slider_names, "$(joint.name).$(j)")
         end
     end
-    widgets = [Interact.widget(linspace(-pi, pi), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
+    widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
     map(display, widgets)
     map((q...) -> begin
         slider_index = 1
