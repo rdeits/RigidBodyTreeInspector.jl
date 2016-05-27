@@ -50,24 +50,29 @@ function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix + Iz >= Iy
     # Iy + Iz >= Ix
 
+    # Ix - Iy = m/5 (dy^2 - dx^2)
+    # Ix - Iy + Iz = m/5 (2*dy^2)
+    # dy^2 = 0.5 (Ix - Iy + Iz) * 5/m
 
-    A = [0. 1 1; 1 0 1; 1 1 0]
+
+    squared_lengths = 0.5 * 5.0 / mass *
+        [-axis_inertias[1] + axis_inertias[2] + axis_inertias[3];
+          axis_inertias[1] - axis_inertias[2] + axis_inertias[3];
+          axis_inertias[1] + axis_inertias[2] - axis_inertias[3]]
 
     for i = 1:3
-        if axis_inertias[i] > dot(A[:,i], axis_inertias)[1]
-            warn("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial ellipsoid is not well-defined.")
+        total_inertia_of_other_axes = zero(axis_inertias[1])
+        for j = 1:3
+            if i == j
+                continue
+            end
+            total_inertia_of_other_axes += axis_inertias[j]
+        end
+        if axis_inertias[i] > total_inertia_of_other_axes
+            error("Principal inertias $(axis_inertias) do not satisfy the triangle inequalities, so the equivalent inertial ellipsoid is not well-defined.")
         end
     end
 
-    squared_lengths = A \ (5. / mass * axis_inertias)
-
-    # If the triangle inequality was violated, we'll get negative squared lengths.
-    # Instead, just make them very small so we can try to do something reasonable.
-    for (i, l) in enumerate(squared_lengths)
-        if l < 0
-            squared_lengths[i] = 0.01 * maximum(squared_lengths)
-        end
-    end
     return √(squared_lengths)
 end
 
