@@ -17,7 +17,7 @@ function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
         trans = zero(Vec{3, T})
     else
         rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
-        rot = rpy_to_quaternion(rpy)
+        rot = RigidBodyDynamics.rpy_to_quaternion(rpy)
         trans = Vec(parse_vector(T, xml_pose, "xyz", "0 0 0"))
     end
     rot, trans
@@ -74,7 +74,7 @@ function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
         if !isroot(body) # geometry attached to world is currently not supported. Also, this is the only reason to have the Mechanism argument for this function
             geometry_data = GeometryData[]
             for xml_visual in xml_visuals
-                rot, trans = RigidBodyDynamics.parse_pose(Float64, find_element(xml_visual, "origin"))
+                rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
                 transform = AffineTransform(Array(rotationmatrix(rot)), Array(trans))
                 geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
                 color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
