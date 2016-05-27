@@ -26,7 +26,6 @@ function rotation_from_x_axis{T}(translation::Vec{3, T})
     if sintheta > 0
         axis = p / sintheta
         angle = atan2(sintheta, costheta)
-        @show axis angle
         return axis, angle
     else
         return Vec{3, T}(1,0,0), 0.0
