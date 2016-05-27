@@ -110,8 +110,9 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
 
             geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
             push!(geometries, GeometryData(geom, tform, color))
+        else
+            push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
         end
-        push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
         if !isroot(body)
             for child in vertex.children
                 joint = child.edgeToParentData
