@@ -1,17 +1,17 @@
 module RigidBodyTreeInspector
 
 using RigidBodyDynamics
-import Quaternions: axis, angle, qrotation
-import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid
+import Quaternions: axis, angle, qrotation, rotationmatrix
+import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid, HyperCylinder
 import FixedSizeArrays: Vec, Point
 import AffineTransforms: AffineTransform, tformrotate, tformtranslate, tformeye
-import GeometryTypes: HyperRectangle
+import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
 import Interact
 import Interpolations: interpolate, Linear, Gridded
 import Base: convert, one
-import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribute, find_element
+import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribute, find_element, name
 
 export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 

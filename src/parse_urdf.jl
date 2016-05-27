@@ -24,7 +24,7 @@ function parse_pose{T}(::Type{T}, xmlPose::Union{Void, XMLElement})
 end
 
 function parse_geometry{T}(::Type{T}, xmlGeometry::XMLElement)
-    geometries = GeometryTypes.AbstractGeometry{3, T}[]
+    geometries = AbstractGeometry{3, T}[]
     for xml_cylinder in get_elements_by_tagname(xmlGeometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
         radius = parse_scalar(Float64, xml_cylinder, "radius")
@@ -32,38 +32,38 @@ function parse_geometry{T}(::Type{T}, xmlGeometry::XMLElement)
     end
     for xml_box in get_elements_by_tagname(xmlGeometry, "box")
         size = Vec(parse_vector(Float64, xml_box, "size", "0 0 0"))
-        push!(geometries, GeometryTypes.HyperRectangle(-size / 2, size))
+        push!(geometries, HyperRectangle(-size / 2, size))
     end
     for xml_sphere in get_elements_by_tagname(xmlGeometry, "sphere")
         radius = parse_scalar(Float64, xml_sphere, "radius")
-        push!(geometries, GeometryTypes.HyperSphere(zero(Point{3, Float64}), radius))
+        push!(geometries, HyperSphere(zero(Point{3, Float64}), radius))
     end
     geometries
 end
 
-function parse_material{T}(::Type{T}, xmlMaterial, namedColors::Dict{ASCIIString, ColorTypes.RGBA{T}})
+function parse_material{T}(::Type{T}, xmlMaterial, namedColors::Dict{ASCIIString, RGBA{T}})
     default = "0.7 0.7 0.7 1."
     if xmlMaterial == nothing
-        color = ColorTypes.RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
+        color = RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
     else
         xmlColor = find_element(xmlMaterial, "color")
         name = attribute(xmlMaterial, "name")
         if xmlColor != nothing || !haskey(namedColors, name) # be lenient when it comes to missing color definitions
-            color = ColorTypes.RGBA{T}(parse_vector(T, xmlColor, "rgba", default)...)
+            color = RGBA{T}(parse_vector(T, xmlColor, "rgba", default)...)
         else
             color = namedColors[name]
         end
     end
-    color::ColorTypes.RGBA{T}
+    color::RGBA{T}
 end
 
 function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
-    @assert LightXML.name(xroot) == "robot"
+    @assert name(xroot) == "robot"
     xmlLinks = get_elements_by_tagname(xroot, "link")
     xmlMaterials = get_elements_by_tagname(xroot, "material")
-    namedColors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::ColorTypes.RGBA{Float64} for m in xmlMaterials]
+    namedColors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::RGBA{Float64} for m in xmlMaterials]
     bods = bodies(mechanism)
     geometrydata = GeometryData[]
     visdata = Link[]
