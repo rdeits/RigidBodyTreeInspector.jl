@@ -1,11 +1,11 @@
 module RigidBodyTreeInspector
 
 using RigidBodyDynamics
-import Quaternions: axis, angle, qrotation, rotationmatrix, Quaternion
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid, HyperCylinder
-import FixedSizeArrays: Vec, Point
-import AffineTransforms: AffineTransform, tformrotate, tformtranslate, tformeye
-import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere
+import StaticArrays: SVector
+import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis, LinearMap, RodriguesVec, Quat, compose, Translation
+import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere, Vec, Point
+
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
 import Interact
@@ -17,7 +17,7 @@ using FileIO
 
 export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
 
-function rotation_between{T}(from::Vec{3, T}, to::Vec{3, T})
+function rotation_between{T}(from::AbstractVector{T}, to::AbstractVector{T})
     from /= norm(from)
     to /= norm(to)
     costheta = dot(from, to)
@@ -26,13 +26,13 @@ function rotation_between{T}(from::Vec{3, T}, to::Vec{3, T})
     if sintheta > 0
         axis = p / sintheta
         angle = atan2(sintheta, costheta)
-        return axis, angle
+        return AngleAxis(angle, axis[1], axis[2], axis[3])
     else
-        return Vec{3, T}(1,0,0), 0.0
+        return AngleAxis(0.0, 1, 0, 0)
     end
 end
 
-rotation_from_x_axis{T}(translation::Vec{3, T}) = rotation_between(Vec{3, T}(1,0,0), translation)
+rotation_from_x_axis{T}(translation::AbstractVector{T}) = rotation_between(SVector{3, T}(1,0,0), translation)
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix = m/5 (dy^2 + dz^2)
@@ -78,7 +78,7 @@ end
 
 function inertial_ellipsoid(body)
     com_frame = CartesianFrame3D("com")
-    com_to_body = Transform3D(com_frame, body.frame, body.inertia.centerOfMass)
+    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(body.inertia))
     spatial_inertia = transform(body.inertia, inv(com_to_body))
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
@@ -86,13 +86,16 @@ function inertial_ellipsoid(body)
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    return geometry, AffineTransform(axes, convert(Vector, body.inertia.centerOfMass))
+    return geometry, AffineMap(axes, center_of_mass(body.inertia))
 end
 
-function create_geometry_for_translation{T}(translation::Vec{3, T}, radius)
-    a, theta = rotation_from_x_axis(translation)
+function create_geometry_for_translation{T}(translation::AbstractVector{T}, radius)
+    Rx = rotation_from_x_axis(translation)
     geom_length = norm(translation)
-    joint_to_geometry_origin = tformrotate(convert(Vector, a), theta) * tformtranslate([geom_length/2; 0; 0]) * tformrotate([0; pi/2; 0])
+    joint_to_geometry_origin = compose(compose(LinearMap(Rx),
+                                               Translation(geom_length / 2, 0, 0)),
+                                       LinearMap(AngleAxis(pi/2, 0, 1, 0)))
+    # joint_to_geometry_origin = tformrotate(convert(Vector, a), theta) * tformtranslate([geom_length/2; 0; 0]) * tformrotate([0; pi/2; 0])
     return HyperCylinder{3, Float64}(geom_length, radius), joint_to_geometry_origin
 end
 
@@ -109,16 +112,16 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         end
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
-        if show_inertias && !isroot(body) && body.inertia.mass >= 1e-3
+        if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
             ellipsoid, tform = inertial_ellipsoid(body)
             push!(geometries, GeometryData(ellipsoid, tform, color))
 
             # geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
             # push!(geometries, GeometryData(geom, tform, color))
         else
-            push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), tformeye(3), color))
+            push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), IdentityTransformation(), color))
         end
-        if !isroot(body)
+        if !isroot(mechanism, body)
             for child in vertex.children
                 joint = child.edgeToParentData
                 joint_to_joint = mechanism.jointToJointTransforms[joint]
@@ -126,7 +129,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
                 push!(geometries, GeometryData(geom, tform, color))
             end
         end
-        vis_data[body] = Link(geometries, body.frame.name)
+        vis_data[body] = Link(geometries, body.name)
     end
     vis_data
 end
@@ -136,19 +139,18 @@ function Visualizer(mechanism::Mechanism; show_inertias::Bool=false, randomize_c
     Visualizer(collect(values(vis_data)))
 end
 
-convert(::Type{AffineTransform}, T::Transform3D) = tformtranslate(convert(Vector, T.trans)) * tformrotate(axis(T.rot), angle(T.rot))
+convert(::Type{AffineMap}, T::Transform3D) = AffineMap(RigidBodyDynamics.rotationmatrix_normalized_fsa(T.rot), T.trans)
 
 function draw(vis::Visualizer, state::MechanismState)
     bodies = [v.vertexData for v in state.mechanism.toposortedTree]
-    origin_transforms = map(body -> convert(AffineTransform, transform_to_root(state, RigidBodyDynamics.default_frame(state.mechanism, body))), bodies)
+    origin_transforms = map(body -> convert(AffineMap, transform_to_root(state, RigidBodyDynamics.default_frame(state.mechanism, body))), bodies)
     draw(vis, origin_transforms)
 end
 
 function joint_configuration{T}(jointType::RigidBodyDynamics.QuaternionFloating, sliders::NTuple{6, T})
     q = collect(sliders)
-    quat = qrotation(q[1:3])
-
-    vcat([quat.s; quat.v1; quat.v2; quat.v3], q[4:6])
+    quat = Quat(RodriguesVec(q[1], q[2], q[3]))
+    vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
 joint_configuration{T}(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis, sliders::NTuple{1, T}) = collect(sliders)
 joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
@@ -164,7 +166,7 @@ function inspect(mechanism, vis=nothing; show_inertias::Bool=false, randomize_co
     state = MechanismState(Float64, mechanism)
     mech_joints = [v.edgeToParentData for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
-    slider_names = ASCIIString[]
+    slider_names = String[]
     for (i, joint) in enumerate(mech_joints)
         for j in 1:num_sliders_per_joint[i]
             push!(slider_names, "$(joint.name).$(j)")
@@ -175,7 +177,7 @@ function inspect(mechanism, vis=nothing; show_inertias::Bool=false, randomize_co
     map((q...) -> begin
         slider_index = 1
         for (i, joint) in enumerate(mech_joints)
-            state.q[joint][:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
+            configuration(state, joint)[:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
             slider_index += num_sliders_per_joint[i]
         end
         setdirty!(state)
@@ -193,7 +195,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64}, times::Vector{F
     for t in times[1] : dt : times[end]
         tic()
         set_configuration!(state, interpolated_configurations[t])
-        RigidBodyTreeInspector.draw(vis, state)
+        draw(vis, state)
         sleep(max(dt - toq(), 0) / realtimerate)
     end
 end

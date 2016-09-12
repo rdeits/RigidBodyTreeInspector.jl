@@ -1,26 +1,27 @@
-function parse_scalar{T}(::Type{T}, e::XMLElement, name::ASCIIString)
+function parse_scalar{T}(::Type{T}, e::XMLElement, name::String)
     T(parse(attribute(e, name)))
 end
 
-function parse_scalar{T}(::Type{T}, e::XMLElement, name::ASCIIString, default::ASCIIString)
+function parse_scalar{T}(::Type{T}, e::XMLElement, name::String, default::String)
     T(parse(e == nothing ? default : attribute(e, name)))
 end
 
-function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::ASCIIString, default::ASCIIString)
+function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::String, default::String)
     usedefault = e == nothing || attribute(e, name) == nothing
     [T(parse(str)) for str in split(usedefault ? default : attribute(e, name), " ")]
 end
 
 function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
     if xml_pose == nothing
-        rot = one(Quaternion{T})
-        trans = zero(Vec{3, T})
+        transform = IdentityTransformation()
     else
         rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
         rot = RigidBodyDynamics.rpy_to_quaternion(rpy)
-        trans = Vec(parse_vector(T, xml_pose, "xyz", "0 0 0"))
+        quat = Quat(rot.s, rot.v1, rot.v2, rot.v3)
+        trans = parse_vector(T, xml_pose, "xyz", "0 0 0")
+        transform = AffineMap(quat, trans)
     end
-    rot, trans
+    transform
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
@@ -40,7 +41,7 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     end
     for xml_mesh in get_elements_by_tagname(xml_geometry, "mesh")
         filename = attribute(xml_mesh, "filename")
-        filename = replace(filename, "package://", "/Users/rdeits/locomotion/drake-distro/drake/examples/")
+        filename = replace(filename, "package://", "/home/rdeits/locomotion/drake/drake/examples/")
         filename = replace(filename, r".dae$", ".obj")
         mesh = load(filename)
         push!(geometries, mesh)
@@ -48,7 +49,7 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     geometries
 end
 
-function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIString, RGBA{T}})
+function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{String, RGBA{T}})
     default = "0.7 0.7 0.7 1."
     if xml_material == nothing
         color = RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
@@ -64,13 +65,13 @@ function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{ASCIIStri
     color::RGBA{T}
 end
 
-function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
+function parse_urdf(filename::String, mechanism::Mechanism)
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
     xml_links = get_elements_by_tagname(xroot, "link")
     xml_materials = get_elements_by_tagname(xroot, "material")
-    named_colors = [attribute(m, "name")::ASCIIString => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials]
+    named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
     geometry_data = GeometryData[]
     vis_data = Link[]
     for xml_link in xml_links
@@ -78,8 +79,7 @@ function parse_urdf(filename::ASCIIString, mechanism::Mechanism)
         linkname = attribute(xml_link, "name")
         geometry_data = GeometryData[]
         for xml_visual in xml_visuals
-            rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
-            transform = AffineTransform(Array(rotationmatrix(rot)), Array(trans))
+            transform = parse_pose(Float64, find_element(xml_visual, "origin"))
             geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
             color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
             for geometry in geometries

@@ -1,14 +1,12 @@
-IJulia
-Interact
 GeometryTypes
 DataStructures
-Reactive 0.3.3
 Interpolations
 PyLCM 0.0.3
 LightXML
 FileIO
 
-git@github.com:rdeits/DrakeVisualizer.jl.git 7db3693d67f84d935ba5bdc385919e3195bd31c2
-git@github.com:tkoolen/RigidBodyDynamics.jl.git 7841ea8220804bfd491f14014b85fa242dc50ff3
-git@github.com:rdeits/Quaternions.jl.git d183ac251c7277c287c8a660fd29b21313841c09
+git@github.com:rdeits/DrakeVisualizer.jl.git c4cca013ca5551e928b9f36f2d1c14b242a01a66
+git@github.com:tkoolen/RigidBodyDynamics.jl.git 5755eb0138f43a5162463f8e4f5b95f77ddbbc68
 git@github.com:rdeits/MeshIO.jl.git e55676925e57c8420c2a5ce1e74e90229b3be3a8
+git@github.com:JuliaLang/IJulia.jl.git a38604878247a0c4a2c6649fa9f9417eb63221c0
+git@github.com:JuliaLang/Interact.jl.git 77cd0eb8721e19314d19ae506cf77b68c14d662e
