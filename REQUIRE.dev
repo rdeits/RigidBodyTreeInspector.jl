@@ -4,6 +4,7 @@ Interpolations
 PyLCM 0.0.3
 LightXML
 FileIO
+StaticArrays
 julia 0.5-
 
 git@github.com:rdeits/DrakeVisualizer.jl.git c4cca013ca5551e928b9f36f2d1c14b242a01a66

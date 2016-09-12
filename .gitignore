@@ -1,4 +1,4 @@
-packages/v0.4/*
+packages/v0.5/*
 packages/.cache
 packages/lib
-!packages/v0.4/RigidBodyTreeInspector
+!packages/v0.5/RigidBodyTreeInspector
