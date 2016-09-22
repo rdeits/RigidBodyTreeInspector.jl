@@ -78,7 +78,7 @@ end
 
 function inertial_ellipsoid(body)
     com_frame = CartesianFrame3D("com")
-    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(body.inertia))
+    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(body.inertia).v)
     spatial_inertia = transform(body.inertia, inv(com_to_body))
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
@@ -86,7 +86,7 @@ function inertial_ellipsoid(body)
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    return geometry, AffineMap(axes, center_of_mass(body.inertia))
+    return geometry, AffineMap(axes, center_of_mass(body.inertia).v)
 end
 
 function create_geometry_for_translation{T}(translation::AbstractVector{T}, radius)
