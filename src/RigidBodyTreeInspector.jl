@@ -159,10 +159,10 @@ num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
 num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function inspect(mechanism, vis=nothing; show_inertias::Bool=false, randomize_colors::Bool=true)
-    if vis == nothing
-        vis = Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
-    end
+function inspect(mechanism,
+                 vis=Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors);
+                 show_inertias::Bool=false,
+                 randomize_colors::Bool=true)
     state = MechanismState(Float64, mechanism)
     mech_joints = [v.edgeToParentData for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)

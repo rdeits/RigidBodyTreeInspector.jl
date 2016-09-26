@@ -90,5 +90,5 @@ function parse_urdf(filename::String, mechanism::Mechanism)
     end
     sorted_body_names = [v.vertexData.name for v in mechanism.toposortedTree]
     sort!(vis_data, by=link -> findfirst(sorted_body_names, link.name))
-    return Visualizer(vis_data)
+    return vis_data
 end
