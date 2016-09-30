@@ -24,7 +24,7 @@ function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
     transform
 end
 
-function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
+function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
     geometries = AbstractGeometry[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
@@ -41,10 +41,44 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement)
     end
     for xml_mesh in get_elements_by_tagname(xml_geometry, "mesh")
         filename = attribute(xml_mesh, "filename")
-        filename = replace(filename, "package://", "/home/rdeits/locomotion/drake/drake/examples/")
-        filename = replace(filename, r".dae$", ".obj")
-        mesh = load(filename)
-        push!(geometries, mesh)
+        dae_pattern = r".dae$"
+        replaced_extension_with_obj = false
+        if ismatch(dae_pattern, filename)
+            filename = replace(filename, dae_pattern, ".obj")
+            replaced_extension_with_obj = true
+        end
+        package_pattern = r"^package://"
+
+        if ismatch(package_pattern, filename)
+            found_mesh = false
+            for package_directory in package_path
+                filename_in_package = joinpath(package_directory, replace(filename, package_pattern, ""))
+                if ispath(filename_in_package)
+                    mesh = load(filename_in_package)
+                    push!(geometries, mesh)
+                    found_mesh = true
+                    break
+                end
+            end
+            if !found_mesh
+                warning_message = "Could not find the mesh file: $(filename). I tried substituting the following folders for the 'package://' prefix: $(package_path)."
+                if replaced_extension_with_obj
+                    warning_message *= " Note that I replaced the file's original extension with .obj to try to find a mesh in a format I can actually load."
+                end
+                warn(warning_message)
+            end
+        else
+            if ispath(filename)
+                mesh = load(filename)
+                push!(geometries, mesh)
+            else
+                warning_message = "Could not find the mesh file: $(filename)."
+                if replaced_extension_with_obj
+                    warning_message *= " Note that I replaced the file's original extension with .obj to try to find a mesh in a format I can actually load."
+                end
+                warn(warning_message)
+            end
+        end
     end
     geometries
 end
@@ -65,7 +99,10 @@ function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{String, R
     color::RGBA{T}
 end
 
-function parse_urdf_visuals(filename::String, mechanism::Mechanism)
+ros_package_path() = split(get(ENV, "ROS_PACKAGE_PATH", ""), ':')
+
+function parse_urdf_visuals(filename::String, mechanism::Mechanism;
+                            package_path=ros_package_path())
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
@@ -80,7 +117,7 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism)
         geometry_data = GeometryData[]
         for xml_visual in xml_visuals
             transform = parse_pose(Float64, find_element(xml_visual, "origin"))
-            geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"))
+            geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"), package_path)
             color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
             for geometry in geometries
                 push!(geometry_data, GeometryData(geometry, transform, color))
@@ -93,6 +130,7 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism)
     return vis_data
 end
 
-function parse_urdf(filename::String, mechanism::Mechanism)
-    Visualizer(parse_urdf_visuals(filename, mechanism))
+function parse_urdf(filename::String, mechanism::Mechanism;
+                    package_path=ros_package_path())
+    Visualizer(parse_urdf_visuals(filename, mechanism; package_path=package_path))
 end
