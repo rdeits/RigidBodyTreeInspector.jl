@@ -134,17 +134,16 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         end
         unique_name = if body.name in link_names
             i = 1
-            while true
-                candidate = body.name * "_$(i)"
-                if !(candidate in link_names)
-                    break
-                end
+            candidate = body.name * "_$(i)"
+            while candidate in link_names
                 i += 1
+                candidate = body.name * "_$(i)"
             end
             candidate
         else
             body.name
         end
+        push!(link_names, unique_name)
         vis_data[body] = Link(geometries, unique_name)
     end
     vis_data

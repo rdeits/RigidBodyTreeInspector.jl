@@ -11,6 +11,18 @@ using RigidBodyDynamics
     draw(vis, state)
 end
 
+@testset "attach mechanism" begin
+    mechanism = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
+    mechanism2 = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
+    attach!(mechanism, root_body(mechanism), mechanism2)
+    vis = Visualizer(mechanism)
+    previous_names = Set()
+    for link in vis.robot.links
+        @test !(link.name in previous_names)
+        push!(previous_names, link.name)
+    end
+end
+
 @testset "urdf mechanism" begin
     urdf = "$(ENV["HOME"])/locomotion/drake-distro/drake/examples/Valkyrie/urdf/urdf/valkyrie_A_sim_drake_one_neck_dof_wide_ankle_rom.urdf"
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
