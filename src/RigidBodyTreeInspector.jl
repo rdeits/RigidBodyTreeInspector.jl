@@ -107,6 +107,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
     box_width = 0.05 * maximum_joint_to_joint_length
 
     vis_data = OrderedDict{RigidBody, Link}()
+    link_names = Set()
     for vertex in mechanism.toposortedTree
         if randomize_colors
             color = RGBA{Float64}(rand(3)..., 0.5)
@@ -132,7 +133,20 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
                 push!(geometries, GeometryData(geom, tform, color))
             end
         end
-        vis_data[body] = Link(geometries, body.name)
+        unique_name = if body.name in link_names
+            i = 1
+            while true
+                candidate = body.name * "_$(i)"
+                if !(candidate in link_names)
+                    break
+                end
+                i += 1
+            end
+            candidate
+        else
+            body.name
+        end
+        vis_data[body] = Link(geometries, unique_name)
     end
     vis_data
 end
