@@ -1,11 +1,22 @@
 using Base.Test
 using RigidBodyTreeInspector
+using RigidBodyDynamics
+
+@testset "chain mechanism" begin
+    mechanism = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
+    vis = Visualizer(mechanism; show_inertias=true);
+    # We can draw the mechanism at a single state:
+    state = MechanismState(Float64, mechanism)
+    rand!(state)
+    draw(vis, state)
+end
 
 @testset "urdf mechanism" begin
     urdf = "$(ENV["HOME"])/locomotion/drake-distro/drake/examples/Valkyrie/urdf/urdf/valkyrie_A_sim_drake_one_neck_dof_wide_ankle_rom.urdf"
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
     package_path = ["$(ENV["HOME"])/locomotion/drake-distro/drake/examples"]
     vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism; package_path=package_path)
+    @test length(vis.robot.links) == length(bodies(mechanism))
 end
 
 @testset "notebooks" begin

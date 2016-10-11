@@ -80,16 +80,17 @@ function inertial_ellipsoid_dimensions(mass, axis_inertias)
 end
 
 function inertial_ellipsoid(body)
+    inertia = get(body.inertia)
     com_frame = CartesianFrame3D("com")
-    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(body.inertia).v)
-    spatial_inertia = transform(body.inertia, inv(com_to_body))
+    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(inertia).v)
+    spatial_inertia = transform(inertia, inv(com_to_body))
     e = eigfact(convert(Array, spatial_inertia.moment))
     principal_inertias = e.values
     axes = e.vectors
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    return geometry, AffineMap(axes, center_of_mass(body.inertia).v)
+    return geometry, AffineMap(axes, center_of_mass(inertia).v)
 end
 
 function create_geometry_for_translation{T}(translation::AbstractVector{T}, radius)
@@ -115,12 +116,10 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         end
         body = vertex.vertexData
         geometries = Vector{GeometryData}()
-        if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
+        if show_inertias && !isnull(body.inertia) && get(body.inertia).mass >= 1e-3
+        # if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
             ellipsoid, tform = inertial_ellipsoid(body)
             push!(geometries, GeometryData(ellipsoid, tform, color))
-
-            # geom, tform = create_geometry_for_translation(body.inertia.centerOfMass, box_width/4)
-            # push!(geometries, GeometryData(geom, tform, color))
         else
             push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), IdentityTransformation(), color))
         end

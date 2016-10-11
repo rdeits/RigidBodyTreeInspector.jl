@@ -110,7 +110,8 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     xml_materials = get_elements_by_tagname(xroot, "material")
     named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
     geometry_data = GeometryData[]
-    vis_data = Link[]
+    link_geometries = Dict{String, Link}()
+    # vis_data = Link[]
     for xml_link in xml_links
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
@@ -123,10 +124,13 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
                 push!(geometry_data, GeometryData(geometry, transform, color))
             end
         end
-        push!(vis_data, Link(geometry_data, linkname))
+        link_geometries[linkname] = Link(geometry_data, linkname)
+        # push!(vis_data, Link(geometry_data, linkname))
     end
-    sorted_body_names = [v.vertexData.name for v in mechanism.toposortedTree]
-    sort!(vis_data, by=link -> findfirst(sorted_body_names, link.name))
+    vis_data = Link[]
+    for v in mechanism.toposortedTree
+        push!(vis_data, get(link_geometries, v.vertexData.name, Link([], v.vertexData.name)))
+    end
     return vis_data
 end
 
