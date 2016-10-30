@@ -1,14 +1,14 @@
-GeometryTypes
-DataStructures
-Interpolations
+julia 0.5
+DataStructures 0.4.3
+FileIO 0.1.0
+GeometryTypes 0.1.6
+IJulia 1.3.2
+Interact 0.3.5
+Interpolations 0.3.6
+LightXML 0.4.0
+MeshIO 0.0.6
 PyLCM 0.0.3
-LightXML
-FileIO
-StaticArrays
-julia 0.5-
+RigidBodyDynamics 0.0.1
+StaticArrays 0.0.4
 
 git@github.com:rdeits/DrakeVisualizer.jl.git c4cca013ca5551e928b9f36f2d1c14b242a01a66
-git@github.com:tkoolen/RigidBodyDynamics.jl.git 624458a0538b8aa78adc91d6ef7d0819fec76305
-git@github.com:rdeits/MeshIO.jl.git e55676925e57c8420c2a5ce1e74e90229b3be3a8
-git@github.com:JuliaLang/IJulia.jl.git a38604878247a0c4a2c6649fa9f9417eb63221c0
-git@github.com:JuliaLang/Interact.jl.git 77cd0eb8721e19314d19ae506cf77b68c14d662e
