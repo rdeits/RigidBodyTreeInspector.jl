@@ -8,7 +8,7 @@ Interpolations 0.3.6
 LightXML 0.4.0
 MeshIO 0.0.6
 PyLCM 0.0.3
-RigidBodyDynamics 0.0.1
+RigidBodyDynamics 0.0.2
 StaticArrays 0.0.4
 
-git@github.com:rdeits/DrakeVisualizer.jl.git c4cca013ca5551e928b9f36f2d1c14b242a01a66
+git@github.com:rdeits/DrakeVisualizer.jl.git 32d97d42c16e0af38a53dbe63e017d03203802ce

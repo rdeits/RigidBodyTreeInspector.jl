@@ -1,9 +1,9 @@
-__precompile__()
+# __precompile__()
 
 module RigidBodyTreeInspector
 
 using RigidBodyDynamics
-import RigidBodyDynamics: parse_urdf
+import RigidBodyDynamics: parse_urdf, edge_to_parent_data, vertex_data
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid, HyperCylinder
 import StaticArrays: SVector
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis, LinearMap, RodriguesVec, Quat, compose, Translation
@@ -18,7 +18,12 @@ import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribut
 import MeshIO
 using FileIO
 
-export create_geometry, inspect, Visualizer, draw, animate, parse_urdf
+export manipulate
+       inspect,
+       Visualizer,
+       draw,
+       animate,
+       parse_urdf
 
 function rotation_between{T}(from::AbstractVector{T}, to::AbstractVector{T})
     from /= norm(from)
@@ -115,7 +120,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         else
             color = RGBA{Float64}(1, 0, 0, 0.5)
         end
-        body = vertex.vertexData
+        body = vertex_data(vertex)
         geometries = Vector{GeometryData}()
         if show_inertias && !isnull(body.inertia) && get(body.inertia).mass >= 1e-3
         # if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
@@ -126,7 +131,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         end
         if !isroot(mechanism, body)
             for child in vertex.children
-                joint = child.edgeToParentData
+                joint = edge_to_parent_data(child)
                 joint_to_joint = mechanism.jointToJointTransforms[joint]
                 geom, tform = create_geometry_for_translation(joint_to_joint.trans, box_width/2)
                 push!(geometries, GeometryData(geom, tform, color))
@@ -157,7 +162,7 @@ end
 convert(::Type{AffineMap}, T::Transform3D) = AffineMap(RigidBodyDynamics.rotationmatrix_normalized_fsa(T.rot), T.trans)
 
 function draw(vis::Visualizer, state::MechanismState)
-    bodies = [v.vertexData for v in state.mechanism.toposortedTree]
+    bodies = [vertex_data(v) for v in state.mechanism.toposortedTree]
     origin_transforms = map(body -> convert(AffineMap, transform_to_root(state, RigidBodyDynamics.default_frame(state.mechanism, body))), bodies)
     draw(vis, origin_transforms)
 end
@@ -174,12 +179,9 @@ num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
 num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function inspect(mechanism,
-                 vis::Visualizer;
-                 show_inertias::Bool=false,
-                 randomize_colors::Bool=true)
+function manipulate(mechanism::Mechanism, callback::Function)
     state = MechanismState(Float64, mechanism)
-    mech_joints = [v.edgeToParentData for v in mechanism.toposortedTree[2:end]]
+    mech_joints = [edge_to_parent_data(v) for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
     slider_names = String[]
     for (i, joint) in enumerate(mech_joints)
@@ -188,7 +190,7 @@ function inspect(mechanism,
         end
     end
     widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
-    map(display, widgets)
+    foreach(display, widgets)
     map((q...) -> begin
         slider_index = 1
         for (i, joint) in enumerate(mech_joints)
@@ -196,15 +198,19 @@ function inspect(mechanism,
             slider_index += num_sliders_per_joint[i]
         end
         setdirty!(state)
-        draw(vis, state)
+        callback(state)
         end, [Interact.signal(w) for w in widgets]...)
 end
 
-inspect(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true) = inspect(
-    mechanism,
-    Visualizer(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors),
-    show_inertias=show_inertias,
-    randomize_colors=randomize_colors)
+inspect(mechanism::Mechanism, vis::Visualizer) =
+    manipulate(mechanism, state -> draw(vis, state))
+
+inspect(mechanism;
+        show_inertias::Bool=false,
+        randomize_colors::Bool=true) =
+    inspect(mechanism, Visualizer(mechanism;
+                                  show_inertias=show_inertias,
+                                  randomize_colors=randomize_colors))
 
 one(::Type{Array{Float64,1}}) = 1.
 
