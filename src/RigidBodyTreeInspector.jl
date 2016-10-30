@@ -18,7 +18,7 @@ import LightXML: XMLElement, parse_file, root, get_elements_by_tagname, attribut
 import MeshIO
 using FileIO
 
-export manipulate
+export manipulate,
        inspect,
        Visualizer,
        draw,
@@ -179,7 +179,7 @@ num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
 num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
-function manipulate(mechanism::Mechanism, callback::Function)
+function manipulate(callback::Function, mechanism::Mechanism)
     state = MechanismState(Float64, mechanism)
     mech_joints = [edge_to_parent_data(v) for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
@@ -202,8 +202,9 @@ function manipulate(mechanism::Mechanism, callback::Function)
         end, [Interact.signal(w) for w in widgets]...)
 end
 
-inspect(mechanism::Mechanism, vis::Visualizer) =
-    manipulate(mechanism, state -> draw(vis, state))
+inspect(mechanism::Mechanism, vis::Visualizer) = manipulate(mechanism) do state
+    draw(vis, state)
+end
 
 inspect(mechanism;
         show_inertias::Bool=false,
