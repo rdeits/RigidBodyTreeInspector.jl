@@ -1,5 +1,8 @@
 # RigidBodyTreeInspector
 
+[![Build Status](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl.svg?branch=master)](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl)
+[![codecov.io](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl/coverage.svg?branch=master)](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl?branch=master)
+
 This package provides a simple tool for inspecting and manipulating the kinematic structure of a robot. It relies on several other packages to provide this functionality:
 
 * [tkoolen/RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl) to parse and represent kinematic structures
