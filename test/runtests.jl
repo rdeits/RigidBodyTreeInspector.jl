@@ -32,12 +32,10 @@ end
 end
 
 @testset "notebooks" begin
-    if VERSION < v"0.6-dev"  # skip notebooks on 0.6 due to jupyter kernel version mismatch
-        using IJulia
-        jupyter = IJulia.jupyter
+    using IJulia
+    jupyter = IJulia.jupyter
 
-        for notebook in ["../examples/demo.ipynb", "../examples/urdf.ipynb"]
-            run(`$jupyter nbconvert --to notebook --execute $notebook --output $notebook`)
-        end
+    for notebook in ["../examples/demo.ipynb", "../examples/urdf.ipynb"]
+        run(`$jupyter nbconvert --to notebook --execute $notebook --output $notebook`)
     end
 end

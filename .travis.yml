@@ -11,6 +11,9 @@ notifications:
   email: false
 branches:
   only: master
+matrix:
+  allow_failures:
+    - julia: nightly
 
 before_install:
   - mkdir -p $HOME/locomotion
