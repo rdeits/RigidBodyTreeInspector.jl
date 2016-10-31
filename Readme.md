@@ -7,24 +7,9 @@ This package provides a simple tool for inspecting and manipulating the kinemati
 * [rdeits/DrakeVisualizer.jl](https://github.com/rdeits/DrakeVisualizer.jl) to communicate with `director`
 * [rdeits/PyLCM.jl](https://github.com/rdeits/PyLCM.jl) for message-passing and communication
 
-# Installation
-
-Not all of the packages required by RigidBodyTreeInspector are available as official Julia packages. You can see a list of the exact packages and versions in [REQUIRE.dev](https://github.com/rdeits/RigidBodyTreeInspector.jl/blob/master/REQUIRE.dev), and you can install those packages manually if you wish. However, the easiest way to install the necessary prerequisites is with [rdeits/juliet](https://github.com/rdeits/juliet). We recommend installing `juliet` and then doing the following:
-
-```bash
-git clone https://github.com/rdeits/RigidBodyTreeInspector.jl.git
-cd RigidBodyTreeInspector.jl
-source setup.sh
-juliet install
-```
-
-The `setup.sh` script will set your JULIA_PKGDIR to the `packages` folder inside `RigidBodyTreeInspector`. That means that anything you install here won't affect your global Julia package installation. `juliet install` will then read `REQUIRE.dev` and set up all of the packages at their correct versions. Note that you'll need to run `source setup.sh` before launching Julia, too.
-
-(hopefully this will all get much easier in the future when `juliet` is replaced with [Pkg3](http://wildart.github.io/assets/presentation/juliacon-pkg3.html#1) or similar).
-
 # Examples
 
-Here we show the three different visualization modes available in this package. In each case, we'll be looking at the NASA Valkyrie robot, which we loaded from the URDF files in <https://github.com/RobotLocomotion/drake/tree/master/drake/examples/Valkyrie>.  
+Here we show the three different visualization modes available in this package. In each case, we'll be looking at the NASA Valkyrie robot, which we loaded from the URDF files in <https://github.com/RobotLocomotion/drake/tree/master/drake/examples/Valkyrie>. These results are all taken from [examples/urdf.ipynb](https://github.com/rdeits/RigidBodyTreeInspector.jl/blob/master/examples/urdf.ipynb)
 
 ### Pure kinematic skeleton
 

@@ -1,5 +1,6 @@
 julia 0.5
 DataStructures 0.4.3
+DrakeVisualizer 0.0.1
 FileIO 0.1.0
 GeometryTypes 0.1.6
 IJulia 1.3.2
@@ -10,5 +11,3 @@ MeshIO 0.0.6
 PyLCM 0.0.3
 RigidBodyDynamics 0.0.2
 StaticArrays 0.0.4
-
-git@github.com:rdeits/DrakeVisualizer.jl.git 32d97d42c16e0af38a53dbe63e017d03203802ce
