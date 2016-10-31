@@ -3,12 +3,16 @@
 [![Build Status](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl.svg?branch=master)](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl)
 [![codecov.io](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl/coverage.svg?branch=master)](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl?branch=master)
 
-This package provides a simple tool for inspecting and manipulating the kinematic structure of a robot. It relies on several other packages to provide this functionality:
+This package provides a simple tool for inspecting and manipulating the kinematic structure of a robot inside of an [IJulia](https://github.com/JuliaLang/IJulia.jl) notebook. It relies on several other packages to provide this functionality:
 
 * [tkoolen/RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl) to parse and represent kinematic structures
 * [RobotLocomotion/director](https://github.com/RobotLocomotion/director) for 3D visualization
 * [rdeits/DrakeVisualizer.jl](https://github.com/rdeits/DrakeVisualizer.jl) to communicate with `director`
 * [rdeits/PyLCM.jl](https://github.com/rdeits/PyLCM.jl) for message-passing and communication
+
+## Demos
+
+For detailed examples of usage, check out the IJulia notebook demos in [examples](https://github.com/rdeits/RigidBodyTreeInspector.jl/tree/master/examples).
 
 # Examples
 
@@ -35,7 +39,3 @@ The inertial visualization adds to every link on the robot an ellipsoid which wo
 Finally, we can render the actual meshes for each link in the robot:
 
 ![valkyrie meshes](img/val_mesh.png)
-
-## Demos
-
-For more examples of usage, check out the IJulia notebook demos in [examples](https://github.com/rdeits/RigidBodyTreeInspector.jl/tree/master/examples).
