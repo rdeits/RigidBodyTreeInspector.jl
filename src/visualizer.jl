@@ -21,13 +21,15 @@ function draw(vis::Visualizer, state::MechanismState)
     draw(vis, origin_transforms)
 end
 
-inspect(mechanism::Mechanism, vis::Visualizer) = manipulate(mechanism) do state
+inspect!(state::MechanismState, vis::Visualizer) = manipulate!(state) do state
     draw(vis, state)
 end
 
-inspect(mechanism;
-        show_inertias::Bool=false,
-        randomize_colors::Bool=true) =
-    inspect(mechanism, Visualizer(mechanism;
-                                  show_inertias=show_inertias,
-                                  randomize_colors=randomize_colors))
+inspect!(state::MechanismState;
+        show_inertias::Bool=false, randomize_colors::Bool=true) =
+    inspect!(state, Visualizer(state.mechanism;
+                               show_inertias=show_inertias,
+                               randomize_colors=randomize_colors))
+
+inspect(mechanism::Mechanism, args...; kwargs...) =
+    inspect!(MechanismState(Float64, mechanism), args...; kwargs...)

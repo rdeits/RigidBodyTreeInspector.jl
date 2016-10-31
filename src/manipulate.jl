@@ -21,13 +21,13 @@ num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
 """
-    manipulate(callback::Function, mechanism::Mechanism)
+    manipulate!(callback::Function, state::MechanismState)
 
 Create Interact sliders to manipulate the state of the mechanism, and call
-callback(state) each time a slider is changed.
+callback(state) each time a slider is changed. This mutates the state in-place.
 """
-function manipulate(callback::Function, mechanism::Mechanism)
-    state = MechanismState(Float64, mechanism)
+function manipulate!(callback::Function, state::MechanismState)
+    mechanism = state.mechanism
     mech_joints = [edge_to_parent_data(v) for v in mechanism.toposortedTree[2:end]]
     num_sliders_per_joint = map(num_sliders, mech_joints)
     slider_names = String[]
@@ -36,9 +36,10 @@ function manipulate(callback::Function, mechanism::Mechanism)
             push!(slider_names, "$(joint.name).$(j)")
         end
     end
+
     widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
     foreach(display, widgets)
-    map((q...) -> begin
+    foreach(map(Interact.signal, widgets)...) do q...
         slider_index = 1
         for (i, joint) in enumerate(mech_joints)
             configuration(state, joint)[:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
@@ -46,5 +47,15 @@ function manipulate(callback::Function, mechanism::Mechanism)
         end
         setdirty!(state)
         callback(state)
-        end, [Interact.signal(w) for w in widgets]...)
+    end
 end
+
+"""
+    manipulate(callback::Function, mechanism::Mechanism)
+
+Create Interact sliders to manipulate the state of the mechanism, and call
+callback(state) each time a slider is changed. This constructs a new
+MechanismState object to mutate internally.
+"""
+manipulate(callback::Function, mechanism::Mechanism) =
+    manipulate(callback, MechanismState(Float64, mechanism))
