@@ -134,6 +134,19 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     return vis_data
 end
 
+"""
+    parse_urdf(filename::String, mechanism::Mechanism;
+               package_path=ros_package_path())
+
+Extract the visual elements (geometric primitives and meshes) from a URDF
+specified by filename, and use them to build a visualizer for the given
+mechanism.
+
+package_path is a vector of strings, used to supply additional search paths
+for `package://` URLs inside the URDF, which is how many URDFs specify the
+locations of their mesh files. By default, package_path will be set from the 
+value of your `ROS_PACKAGE_PATH` environment variable.
+"""
 function parse_urdf(filename::String, mechanism::Mechanism;
                     package_path=ros_package_path())
     Visualizer(parse_urdf_visuals(filename, mechanism; package_path=package_path))

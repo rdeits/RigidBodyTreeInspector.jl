@@ -1,0 +1,50 @@
+"""
+joint_configuration maps the slider values to a joint configuration vector.
+For a quaternion floating joint, this is nontrivial because we create three
+sliders for the rotational degrees of freedom, which are used to represent
+the rotation in exponential map form. Those three sliders then have to be
+converted into a quaternion to set the joint configuration. We do this because
+interacting with the four components of a quaternion is quite unintuitive.
+"""
+function joint_configuration{T}(jointType::RigidBodyDynamics.QuaternionFloating,
+                                sliders::NTuple{6, T})
+    q = collect(sliders)
+    quat = Quat(RodriguesVec(q[1], q[2], q[3]))
+    vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
+end
+joint_configuration{T}(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis,
+                       sliders::NTuple{1, T}) = collect(sliders)
+joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
+num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
+num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
+num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
+num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
+
+"""
+    manipulate(callback::Function, mechanism::Mechanism)
+
+Create Interact sliders to manipulate the state of the mechanism, and call
+callback(state) each time a slider is changed.
+"""
+function manipulate(callback::Function, mechanism::Mechanism)
+    state = MechanismState(Float64, mechanism)
+    mech_joints = [edge_to_parent_data(v) for v in mechanism.toposortedTree[2:end]]
+    num_sliders_per_joint = map(num_sliders, mech_joints)
+    slider_names = String[]
+    for (i, joint) in enumerate(mech_joints)
+        for j in 1:num_sliders_per_joint[i]
+            push!(slider_names, "$(joint.name).$(j)")
+        end
+    end
+    widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
+    foreach(display, widgets)
+    map((q...) -> begin
+        slider_index = 1
+        for (i, joint) in enumerate(mech_joints)
+            configuration(state, joint)[:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
+            slider_index += num_sliders_per_joint[i]
+        end
+        setdirty!(state)
+        callback(state)
+        end, [Interact.signal(w) for w in widgets]...)
+end
