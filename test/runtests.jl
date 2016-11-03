@@ -23,6 +23,16 @@ end
     end
 end
 
+@testset "simulation and animation" begin
+    mechanism = rand_chain_mechanism(Float64, [Revolute{Float64} for i = 1:10]...)
+    vis = Visualizer(mechanism, show_inertias=true);
+    state = MechanismState(Float64, mechanism)
+    zero!(state)
+    draw(vis, state)
+    times, states = simulate(state, [0, 1]);
+    animate(vis, mechanism, times, states)
+end
+
 @testset "urdf mechanism" begin
     urdf = "$(ENV["HOME"])/locomotion/drake-distro/drake/examples/Valkyrie/urdf/urdf/valkyrie_A_sim_drake_one_neck_dof_wide_ankle_rom.urdf"
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)

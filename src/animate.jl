@@ -1,4 +1,9 @@
-Base.one(::Type{Array{Float64,1}}) = 1.
+immutable InterpolatableArray{A <: AbstractArray}
+    data::A
+end
+
+one{A}(::Type{InterpolatableArray{A}}) = 1
+*(n::Number, a::InterpolatableArray) = n * a.data
 
 normalize_configuration!(jointType::JointType, q) = nothing
 function normalize_configuration!(jointType::QuaternionFloating, q)
@@ -23,7 +28,8 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
                  fps::Float64 = 30., realtimerate::Float64 = 1.)
     state = MechanismState(Float64, mechanism)
     dt = 1. / fps
-    interpolated_configurations = interpolate((times,), configurations, Gridded(Linear()))
+    interp_values = InterpolatableArray{Vector{Float64}}[InterpolatableArray(c) for c in configurations]
+    interpolated_configurations = interpolate((times,), interp_values, Gridded(Linear()))
     for t in times[1] : dt : times[end]
         tic()
         q = interpolated_configurations[t]
