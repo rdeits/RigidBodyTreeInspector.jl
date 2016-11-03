@@ -1,3 +1,9 @@
+"""
+Interpolations.jl requires that one(::Type{T}) be defined for any data
+type we want to interpolate. Rather than defining one(::Type{Vector}) here,
+which might have unforeseen consequences in other packages, we'll create
+a very simple wrapper type that just knows one() and *
+"""
 immutable InterpolatableArray{A <: AbstractArray}
     data::A
 end
