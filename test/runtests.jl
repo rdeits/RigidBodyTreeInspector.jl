@@ -1,6 +1,7 @@
 using Base.Test
 using RigidBodyTreeInspector
 using RigidBodyDynamics
+using IJulia
 
 @testset "chain mechanism" begin
     mechanism = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
@@ -34,18 +35,20 @@ end
 end
 
 @testset "urdf mechanism" begin
-    urdf = "$(ENV["HOME"])/locomotion/drake-distro/drake/examples/Valkyrie/urdf/urdf/valkyrie_A_sim_drake_one_neck_dof_wide_ankle_rom.urdf"
+    urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
-    package_path = ["$(ENV["HOME"])/locomotion/drake-distro/drake/examples"]
-    vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism; package_path=package_path)
+    vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
     @test length(vis.robot.links) == length(bodies(mechanism))
 end
 
-@testset "notebooks" begin
-    using IJulia
-    jupyter = IJulia.jupyter
+test_notebook(notebook) =
+    run(`$(IJulia.jupyter) nbconvert --to notebook --execute $notebook --output $notebook`)
 
-    for notebook in ["../examples/demo.ipynb", "../examples/urdf.ipynb"]
-        run(`$jupyter nbconvert --to notebook --execute $notebook --output $notebook`)
+@testset "notebooks" begin
+    test_notebook("../examples/demo.ipynb")
+
+    if isfile(get(ENV, "DRAKE_DISTRO", "")) || isfile(joinpath(ENV["HOME"], "locomotion", "drake-distro"))
+        # Only run this test on my machine or on my Travis build
+        test_notebook("../examples/urdf.ipynb")
     end
 end
