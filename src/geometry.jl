@@ -85,7 +85,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
     maximum_joint_to_joint_length = maximum([norm(mechanism.jointToJointTransforms[joint].trans) for joint in joints(mechanism)])
     box_width = 0.05 * maximum_joint_to_joint_length
 
-    vis_data = OrderedDict{RigidBody, Link}()
+    vis_data = OrderedDict{CartesianFrame3D, Link}()
     link_names = Set()
     for vertex in mechanism.toposortedTree
         if randomize_colors
@@ -110,19 +110,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
                 push!(geometries, GeometryData(geom, tform, color))
             end
         end
-        unique_name = if body.name in link_names
-            i = 1
-            candidate = body.name * "_$(i)"
-            while candidate in link_names
-                i += 1
-                candidate = body.name * "_$(i)"
-            end
-            candidate
-        else
-            body.name
-        end
-        push!(link_names, unique_name)
-        vis_data[body] = Link(geometries, unique_name)
+        vis_data[body.frame] = geometries
     end
     vis_data
 end
