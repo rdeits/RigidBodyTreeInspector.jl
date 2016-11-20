@@ -6,7 +6,7 @@ using FileIO
 using RigidBodyDynamics
 import RigidBodyDynamics: parse_urdf, edge_to_parent_data, vertex_data
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid,
-                        HyperCylinder
+                        HyperCylinder, to_link_name
 import StaticArrays: SVector
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,

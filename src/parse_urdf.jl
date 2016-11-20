@@ -124,12 +124,14 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
                 push!(geometry_data, GeometryData(geometry, transform, color))
             end
         end
-        link_geometries[linkname] = Link(geometry_data, linkname)
-        # push!(vis_data, Link(geometry_data, linkname))
+        link_geometries[linkname] = geometry_data
     end
-    vis_data = Link[]
+    vis_data = OrderedDict{CartesianFrame3D, Link}()
     for v in mechanism.toposortedTree
-        push!(vis_data, get(link_geometries, v.vertexData.name, Link([], v.vertexData.name)))
+        body = v.vertexData
+        if haskey(link_geometries, body.name)
+            vis_data[body.frame] = link_geometries[body.name]
+        end
     end
     return vis_data
 end
@@ -144,7 +146,7 @@ mechanism.
 
 package_path is a vector of strings, used to supply additional search paths
 for `package://` URLs inside the URDF, which is how many URDFs specify the
-locations of their mesh files. By default, package_path will be set from the 
+locations of their mesh files. By default, package_path will be set from the
 value of your `ROS_PACKAGE_PATH` environment variable.
 """
 function parse_urdf(filename::String, mechanism::Mechanism;

@@ -18,9 +18,10 @@ end
     attach!(mechanism, root_body(mechanism), mechanism2)
     vis = Visualizer(mechanism)
     previous_names = Set()
-    for link in vis.robot.links
-        @test !(link.name in previous_names)
-        push!(previous_names, link.name)
+    for frame in keys(vis.links)
+        name = DrakeVisualizer.to_link_name(frame)
+        @test !(name in previous_names)
+        push!(previous_names, name)
     end
 end
 
@@ -38,7 +39,6 @@ end
     urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
     vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
-    @test length(vis.robot.links) == length(bodies(mechanism))
 end
 
 test_notebook(notebook) =
