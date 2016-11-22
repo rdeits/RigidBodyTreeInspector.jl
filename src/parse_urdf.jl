@@ -11,17 +11,18 @@ function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::String, de
     [T(parse(str)) for str in split(usedefault ? default : attribute(e, name), " ")]
 end
 
-function parse_pose{T}(::Type{T}, xml_pose::Union{Void, XMLElement})
-    if xml_pose == nothing
-        transform = IdentityTransformation()
-    else
-        rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
-        rot = RigidBodyDynamics.rpy_to_quaternion(rpy)
-        quat = Quat(rot.s, rot.v1, rot.v2, rot.v3)
-        trans = parse_vector(T, xml_pose, "xyz", "0 0 0")
-        transform = AffineMap(quat, trans)
-    end
-    transform
+function parse_pose{T}(::Type{T}, xml_pose::Void)
+    trans = [zero(T) for i in 1:3]
+    quat = Quat(one(T), zero(T), zero(T), zero(T))
+    trans, quat
+end
+
+function parse_pose{T}(::Type{T}, xml_pose::XMLElement)
+    rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
+    rot = RigidBodyDynamics.rpy_to_quaternion(rpy)
+    quat = Quat(rot.s, rot.v1, rot.v2, rot.v3)
+    trans = parse_vector(T, xml_pose, "xyz", "0 0 0")
+    trans, quat
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
@@ -109,28 +110,34 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     xml_links = get_elements_by_tagname(xroot, "link")
     xml_materials = get_elements_by_tagname(xroot, "material")
     named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
-    geometry_data = GeometryData[]
-    link_geometries = Dict{String, Link}()
-    # vis_data = Link[]
+
+    name_to_body = Dict(zip(map(RigidBodyDynamics.name, bodies(mechanism)),
+                            bodies(mechanism)))
+
+    vis_data = OrderedDict{CartesianFrame3D, Link}()
     for xml_link in xml_links
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
-        geometry_data = GeometryData[]
+        body_frame = RigidBodyDynamics.default_frame(mechanism,
+                                                     name_to_body[linkname])
         for xml_visual in xml_visuals
-            transform = parse_pose(Float64, find_element(xml_visual, "origin"))
-            geometries = parse_geometry(Float64, find_element(xml_visual, "geometry"), package_path)
-            color = parse_material(Float64, find_element(xml_visual, "material"), named_colors)
+            geometries = parse_geometry(Float64,
+                                        find_element(xml_visual, "geometry"),
+                                        package_path)
+            color = parse_material(Float64,
+                                   find_element(xml_visual, "material"),
+                                   named_colors)
+            trans, quat = parse_pose(Float64, find_element(xml_visual, "origin"))
+            geom_frame = CartesianFrame3D("geometry")
+            tform = Transform3D(geom_frame, body_frame,
+                                RigidBodyDynamics.Quaternion(quat.w, quat.x, quat.y, quat.z),
+                                SVector{3}(trans))
+            add_body_fixed_frame!(mechanism, tform)
             for geometry in geometries
-                push!(geometry_data, GeometryData(geometry, transform, color))
+                vis_data[geom_frame] = Link([GeometryData(geometry,
+                                                          IdentityTransformation(),
+                                                          color)])
             end
-        end
-        link_geometries[linkname] = geometry_data
-    end
-    vis_data = OrderedDict{CartesianFrame3D, Link}()
-    for v in mechanism.toposortedTree
-        body = v.vertexData
-        if haskey(link_geometries, body.name)
-            vis_data[body.frame] = link_geometries[body.name]
         end
     end
     return vis_data

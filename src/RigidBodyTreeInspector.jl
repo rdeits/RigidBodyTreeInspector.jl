@@ -4,7 +4,9 @@ module RigidBodyTreeInspector
 
 using FileIO
 using RigidBodyDynamics
-import RigidBodyDynamics: parse_urdf, edge_to_parent_data, vertex_data
+import RigidBodyDynamics: parse_urdf,
+                          edge_to_parent_data,
+                          vertex_data
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid,
                         HyperCylinder, to_link_name
 import StaticArrays: SVector
