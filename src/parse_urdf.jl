@@ -12,17 +12,16 @@ function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::String, de
 end
 
 function parse_pose{T}(::Type{T}, xml_pose::Void)
-    trans = [zero(T) for i in 1:3]
-    quat = Quat(one(T), zero(T), zero(T), zero(T))
-    trans, quat
+    rot = eye(RotMatrix{3, T})
+    trans = zero(SVector{3, T})
+    rot, trans
 end
 
 function parse_pose{T}(::Type{T}, xml_pose::XMLElement)
-    rpy = parse_vector(T, xml_pose, "rpy", "0 0 0")
-    rot = RigidBodyDynamics.rpy_to_quaternion(rpy)
-    quat = Quat(rot.s, rot.v1, rot.v2, rot.v3)
-    trans = parse_vector(T, xml_pose, "xyz", "0 0 0")
-    trans, quat
+    rpy = RotZYX(parse_vector(T, xml_pose, "rpy", "0 0 0")...)
+    rot = RotMatrix(rpy)
+    trans = SVector{3}(parse_vector(T, xml_pose, "xyz", "0 0 0"))
+    rot, trans
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
@@ -127,11 +126,9 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
             color = parse_material(Float64,
                                    find_element(xml_visual, "material"),
                                    named_colors)
-            trans, quat = parse_pose(Float64, find_element(xml_visual, "origin"))
+            rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
             geom_frame = CartesianFrame3D("geometry")
-            tform = Transform3D(geom_frame, body_frame,
-                                RigidBodyDynamics.Quaternion(quat.w, quat.x, quat.y, quat.z),
-                                SVector{3}(trans))
+            tform = Transform3D(geom_frame, body_frame, rot, trans)
             add_body_fixed_frame!(mechanism, tform)
             for geometry in geometries
                 vis_data[geom_frame] = Link([GeometryData(geometry,
