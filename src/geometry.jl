@@ -57,21 +57,31 @@ function inertial_ellipsoid_dimensions(mass, axis_inertias)
     return √(squared_lengths)
 end
 
-function inertial_ellipsoid(body)
-    inertia = get(body.inertia)
-    com_frame = CartesianFrame3D("com")
-    com_to_body = Transform3D(com_frame, body.frame, center_of_mass(inertia).v)
-    spatial_inertia = transform(inertia, inv(com_to_body))
-    e = eigfact(convert(Array, spatial_inertia.moment))
-    principal_inertias = e.values
-    axes = e.vectors
+function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
+    inertia = spatial_inertia(body)
+    com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com")
+    com_frame_to_inertia_frame = Transform3D(com_frame, inertia.frame, center_of_mass(inertia).v)
+    add_body_fixed_frame!(mechanism, body, com_frame_to_inertia_frame)
+    inertia = transform(inertia, inv(com_frame_to_inertia_frame))
+    principal_inertias, axes = eig(Array(inertia.moment)) # StaticArrays.eig checks that the matrix is Hermitian with zero tolerance...
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
-    radii = inertial_ellipsoid_dimensions(spatial_inertia.mass, principal_inertias)
+    radii = inertial_ellipsoid_dimensions(inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    return geometry, AffineMap(axes, center_of_mass(inertia).v)
+    principal_axes_com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com principal axes")
+    inertia_frame_to_com_principal_axes_frame = Transform3D(inertia.frame, principal_axes_com_frame, inv(RotMatrix{3}(axes)), center_of_mass(inertia).v)
+    add_body_fixed_frame!(mechanism, body, inv(inertia_frame_to_com_principal_axes_frame))
+    @assert begin
+        inertia_in_principal_axes = transform(inertia, find_fixed_transform(mechanism, inertia.frame, principal_axes_com_frame))
+        moment = inertia_in_principal_axes.moment
+        moment_diagonal = norm(moment - diagm(diag(moment)), Inf) < 1e-8
+        com = center_of_mass(inertia_in_principal_axes).v
+        com_zero = norm(com, Inf) < 1e-8
+        moment_diagonal && com_zero
+    end
+    return geometry, principal_axes_com_frame
 end
 
-function create_geometry_for_translation{T}(translation::AbstractVector{T}, radius)
+function create_geometry_for_translation(translation::AbstractVector, radius)
     Rx = rotation_from_x_axis(translation)
     geom_length = norm(translation)
     joint_to_geometry_origin = compose(compose(LinearMap(Rx),
@@ -94,23 +104,25 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
             color = RGBA{Float64}(1, 0, 0, 0.5)
         end
         body = vertex_data(vertex)
+        frame = default_frame(mechanism, body)
         geometries = Vector{GeometryData}()
-        if show_inertias && !isnull(body.inertia) && get(body.inertia).mass >= 1e-3
+        if show_inertias && has_defined_inertia(body) && spatial_inertia(body).mass >= 1e-3
         # if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
-            ellipsoid, tform = inertial_ellipsoid(body)
+            ellipsoid, ellipsoid_frame = inertial_ellipsoid(mechanism, body)
+            tform = AffineMap(find_fixed_transform(mechanism, ellipsoid_frame, frame))
             push!(geometries, GeometryData(ellipsoid, tform, color))
         else
             push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), IdentityTransformation(), color))
         end
         if !isroot(mechanism, body)
-            for child in vertex.children
+            for child in children(vertex)
                 joint = edge_to_parent_data(child)
-                joint_to_joint = mechanism.jointToJointTransforms[joint]
+                joint_to_joint = find_fixed_transform(mechanism, joint.frameBefore, frame)
                 geom, tform = create_geometry_for_translation(joint_to_joint.trans, box_width/2)
                 push!(geometries, GeometryData(geom, tform, color))
             end
         end
-        vis_data[body.frame] = geometries
+        vis_data[frame] = geometries
     end
     vis_data
 end

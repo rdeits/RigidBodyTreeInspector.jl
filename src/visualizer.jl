@@ -15,7 +15,7 @@ function Visualizer(mechanism::Mechanism;
 end
 
 convert(::Type{AffineMap}, T::Transform3D) =
-    AffineMap(RigidBodyDynamics.rotationmatrix_normalized_fsa(T.rot), T.trans)
+    AffineMap(T.rot, T.trans)
 
 function draw(vis::Visualizer, state::MechanismState)
     transforms = Dict(

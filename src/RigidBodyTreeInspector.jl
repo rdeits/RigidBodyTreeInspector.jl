@@ -6,13 +6,17 @@ using FileIO
 using RigidBodyDynamics
 import RigidBodyDynamics: parse_urdf,
                           edge_to_parent_data,
-                          vertex_data
+                          vertex_data,
+                          spatial_inertia,
+                          has_defined_inertia,
+                          default_frame
+import RigidBodyDynamics.TreeDataStructure: children
 import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid,
                         HyperCylinder, to_link_name
-import StaticArrays: SVector
+import StaticArrays: SVector, SMatrix
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,
-                                  Translation
+                                  Translation, RotMatrix, RotZYX
 import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere, Vec, Point
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
