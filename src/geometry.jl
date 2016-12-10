@@ -81,14 +81,21 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
     return geometry, principal_axes_com_frame
 end
 
-function create_geometry_for_translation(translation::AbstractVector, radius)
+function create_geometry_for_translation(mechanism, body, joint, radius)
+    joint_to_joint = find_fixed_transform(mechanism, joint.frameBefore,
+                                          default_frame(mechanism, body))
+    translation = joint_to_joint.trans
     Rx = rotation_from_x_axis(translation)
     geom_length = norm(translation)
     joint_to_geometry_origin = compose(compose(LinearMap(Rx),
                                                Translation(geom_length / 2, 0, 0)),
                                        LinearMap(AngleAxis(pi/2, 0, 1, 0)))
-    # joint_to_geometry_origin = tformrotate(convert(Vector, a), theta) * tformtranslate([geom_length/2; 0; 0]) * tformrotate([0; pi/2; 0])
-    return HyperCylinder{3, Float64}(geom_length, radius), joint_to_geometry_origin
+    frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) joint-to-joint translation")
+    tform = Transform3D(frame, default_frame(mechanism, body),
+                        joint_to_geometry_origin.m,
+                        joint_to_geometry_origin.v)
+    add_body_fixed_frame!(mechanism, body, tform)
+    return HyperCylinder{3, Float64}(geom_length, radius), frame
 end
 
 function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
@@ -104,25 +111,24 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
             color = RGBA{Float64}(1, 0, 0, 0.5)
         end
         body = vertex_data(vertex)
-        frame = default_frame(mechanism, body)
-        geometries = Vector{GeometryData}()
         if show_inertias && has_defined_inertia(body) && spatial_inertia(body).mass >= 1e-3
-        # if show_inertias && !isroot(mechanism, body) && body.inertia.mass >= 1e-3
             ellipsoid, ellipsoid_frame = inertial_ellipsoid(mechanism, body)
-            tform = AffineMap(find_fixed_transform(mechanism, ellipsoid_frame, frame))
-            push!(geometries, GeometryData(ellipsoid, tform, color))
+            vis_data[ellipsoid_frame] = GeometryData(ellipsoid, IdentityTransformation(), color)
         else
-            push!(geometries, GeometryData(HyperSphere{3, Float64}(zero(Point{3, Float64}), box_width), IdentityTransformation(), color))
+            frame = default_frame(mechanism, body)
+            vis_data[frame] = GeometryData(HyperSphere{3, Float64}(
+                zero(Point{3, Float64}), box_width), IdentityTransformation(), color)
         end
         if !isroot(mechanism, body)
             for child in children(vertex)
                 joint = edge_to_parent_data(child)
-                joint_to_joint = find_fixed_transform(mechanism, joint.frameBefore, frame)
-                geom, tform = create_geometry_for_translation(joint_to_joint.trans, box_width/2)
-                push!(geometries, GeometryData(geom, tform, color))
+                geom, geom_frame = create_geometry_for_translation(mechanism,
+                                                                   body,
+                                                                   joint,
+                                                                   box_width / 2)
+                vis_data[geom_frame] = GeometryData(geom, IdentityTransformation(), color)
             end
         end
-        vis_data[frame] = geometries
     end
     vis_data
 end

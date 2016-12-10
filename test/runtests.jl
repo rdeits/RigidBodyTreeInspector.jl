@@ -31,7 +31,7 @@ end
     state = MechanismState(Float64, mechanism)
     zero!(state)
     draw(vis, state)
-    times, states = simulate(state, [0, 1]);
+    times, states = simulate(state, 1);
     animate(vis, mechanism, times, states)
 end
 

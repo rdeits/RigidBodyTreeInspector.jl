@@ -1,4 +1,4 @@
-# __precompile__()  # precompilation blocked by https://github.com/JuliaGeometry/Quaternions.jl/issues/18 via RigidBodyDynamics
+__precompile__()
 
 module RigidBodyTreeInspector
 
