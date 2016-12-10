@@ -16,7 +16,7 @@ import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid,
 import StaticArrays: SVector, SMatrix
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,
-                                  Translation, RotMatrix, RotZYX
+                                  Translation, RotMatrix, RotXYZ
 import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere, Vec, Point
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
