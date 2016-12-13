@@ -22,6 +22,6 @@ script:
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.build("RigidBodyTreeInspector")'
   - julia -e 'Pkg.checkout("DrakeVisualizer")'
-  - julia --check-bounds=yes -e 'Pkg.test("RigidBodyTreeInspector", coverage=true)'
+  - julia --check-bounds=yes --code-coverage=user -e 'cd(joinpath(Pkg.dir("RigidBodyTreeInspector"), "test")); include("runtests.jl")'
 after_success:
   - julia -e 'cd(Pkg.dir("RigidBodyTreeInspector")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
