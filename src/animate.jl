@@ -46,7 +46,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
             configuration(state, joint)[:] = q_joint
         end
         setdirty!(state)
-        draw(vis, state)
+        draw!(vis, state)
         sleep(max(dt - toq(), 0) / realtimerate)
     end
 end

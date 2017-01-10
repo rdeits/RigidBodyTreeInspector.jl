@@ -11,8 +11,11 @@ import RigidBodyDynamics: parse_urdf,
                           has_defined_inertia,
                           default_frame
 import RigidBodyDynamics.TreeDataStructure: children
-import DrakeVisualizer: Visualizer, draw, Link, GeometryData, HyperEllipsoid,
-                        HyperCylinder, to_link_name
+import DrakeVisualizer: Visualizer, draw!, load!, batch,
+                        hasgeometry,
+                        GeometryData,
+                        HyperEllipsoid,
+                        HyperCylinder
 import StaticArrays: SVector, SMatrix
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,

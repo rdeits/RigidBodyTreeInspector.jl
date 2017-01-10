@@ -102,7 +102,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
     maximum_joint_to_joint_length = maximum([norm(mechanism.jointToJointTransforms[joint].trans) for joint in joints(mechanism)])
     box_width = 0.05 * maximum_joint_to_joint_length
 
-    vis_data = OrderedDict{CartesianFrame3D, Link}()
+    vis_data = OrderedDict{CartesianFrame3D, Vector{GeometryData}}()
     link_names = Set()
     for vertex in mechanism.toposortedTree
         if randomize_colors
@@ -113,11 +113,11 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         body = vertex_data(vertex)
         if show_inertias && has_defined_inertia(body) && spatial_inertia(body).mass >= 1e-3
             ellipsoid, ellipsoid_frame = inertial_ellipsoid(mechanism, body)
-            vis_data[ellipsoid_frame] = GeometryData(ellipsoid, IdentityTransformation(), color)
+            vis_data[ellipsoid_frame] = [GeometryData(ellipsoid, color)]
         else
             frame = default_frame(mechanism, body)
-            vis_data[frame] = GeometryData(HyperSphere{3, Float64}(
-                zero(Point{3, Float64}), box_width), IdentityTransformation(), color)
+            vis_data[frame] = [GeometryData(HyperSphere{3, Float64}(
+                zero(Point{3, Float64}), box_width), color)]
         end
         if !isroot(mechanism, body)
             for child in children(vertex)
@@ -126,7 +126,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
                                                                    body,
                                                                    joint,
                                                                    box_width / 2)
-                vis_data[geom_frame] = GeometryData(geom, IdentityTransformation(), color)
+                vis_data[geom_frame] = [GeometryData(geom, color)]
             end
         end
     end
