@@ -1,5 +1,3 @@
-__precompile__()
-
 module RigidBodyTreeInspector
 
 using FileIO
@@ -12,7 +10,6 @@ import RigidBodyDynamics: parse_urdf,
                           default_frame
 import RigidBodyDynamics.TreeDataStructure: children
 import DrakeVisualizer: Visualizer, draw!, load!, batch,
-                        hasgeometry,
                         GeometryData,
                         HyperEllipsoid,
                         HyperCylinder
