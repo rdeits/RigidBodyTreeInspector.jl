@@ -30,7 +30,8 @@ import MeshIO
 export manipulate,
        inspect,
        Visualizer,
-       draw,
+       draw!,
+       load!,
        animate,
        parse_urdf
 

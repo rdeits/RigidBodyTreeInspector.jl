@@ -25,22 +25,19 @@ function draw!(vis::Visualizer, state::MechanismState)
     end
 end
 
-# """
-# Construct a DrakeVisualizer.Visualizer for the given mechanism by constructing
-# simple geometries just from the structure of the kinematic tree. If
-# `show_intertias` is true, then also construct equivalent inertial ellipsoids
-# for every link.
-# """
-# function Visualizer(mechanism::Mechanism, prefix=[:robot1];
-#                     show_inertias::Bool=false, randomize_colors::Bool=true)
-#     vis = Visualizer()[prefix]
-#     frame_geoms = create_geometry(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
-#     batch(vis) do v
-#         for (frame, geoms) in frame_geoms
-#         end
-#     end
-#     vis
-# end
+"""
+Construct a DrakeVisualizer.Visualizer for the given mechanism by constructing
+simple geometries just from the structure of the kinematic tree. If
+`show_intertias` is true, then also construct equivalent inertial ellipsoids
+for every link.
+"""
+function Visualizer(mechanism::Mechanism, prefix=[:robot1];
+                    show_inertias::Bool=false, randomize_colors::Bool=true)
+    vis = Visualizer()[prefix]
+    frame_geoms = create_geometry(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+    load!(vis, frame_geoms)
+    vis
+end
 
 convert(::Type{AffineMap}, T::Transform3D) =
     AffineMap(T.rot, T.trans)
@@ -51,7 +48,7 @@ convert(::Type{AffineMap}, T::Transform3D) =
 #     draw(vis, transforms)
 # end
 
-inspect!(state::MechanismState, vis::Visualizer) = manipulate!(state) do state
+inspect!(state::MechanismState, vis::Visualizer=Visualizer(mechanism)) = manipulate!(state) do state
     draw!(vis, state)
 end
 
