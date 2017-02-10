@@ -39,9 +39,14 @@ for every link.
 """
 function Visualizer(mechanism::Mechanism, prefix=[:robot1];
                     show_inertias::Bool=false, randomize_colors::Bool=true)
-    vis = Visualizer()[prefix]
     frame_geoms = create_geometry(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
-    setgeometry!(vis, frame_geoms)
+    Visualizer(frame_geoms, prefix)
+end
+
+function Visualizer(frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}},
+                    prefix=[:robot1])
+    vis = Visualizer()[prefix]
+    setgeometry!(vis, frame_geometries)
     vis
 end
 
