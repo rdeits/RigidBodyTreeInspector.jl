@@ -117,8 +117,8 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     for xml_link in xml_links
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
-        body_frame = RigidBodyDynamics.default_frame(mechanism,
-                                                     name_to_body[linkname])
+        body = name_to_body[linkname]
+        body_frame = RigidBodyDynamics.default_frame(body)
         for xml_visual in xml_visuals
             geometries = parse_geometry(Float64,
                                         find_element(xml_visual, "geometry"),
@@ -129,7 +129,7 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
             rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
             geom_frame = CartesianFrame3D("geometry")
             tform = Transform3D(geom_frame, body_frame, rot, trans)
-            add_body_fixed_frame!(mechanism, tform)
+            add_frame!(body, tform)
             for geometry in geometries
                 vis_data[geom_frame] = [GeometryData(geometry,
                                                      color)]

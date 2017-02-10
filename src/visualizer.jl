@@ -16,13 +16,16 @@ end
 
 function settransform!(vis::Visualizer, state::MechanismState)
     batch(vis) do v
-        for frame in keys(state.mechanism.bodyFixedFrameToBody)
-            framename = to_link_name(frame)
-            if framename in keys(vis.core.tree[vis.path].children)
-                framevis = v[to_link_name(frame)]
-                settransform!(framevis,
-                              convert(AffineMap,
-                                      transform_to_root(state, frame)))
+        for body in bodies(state.mechanism)
+            for transform in RigidBodyDynamics.frame_definitions(body)
+                frame = transform.from
+                framename = to_link_name(frame)
+                if framename in keys(vis.core.tree[vis.path].children)
+                    framevis = v[to_link_name(frame)]
+                    settransform!(framevis,
+                                  convert(AffineMap,
+                                          transform_to_root(state, frame)))
+                end
             end
         end
     end
