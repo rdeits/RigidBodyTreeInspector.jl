@@ -113,12 +113,12 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     name_to_body = Dict(zip(map(RigidBodyDynamics.name, bodies(mechanism)),
                             bodies(mechanism)))
 
-    vis_data = OrderedDict{CartesianFrame3D, Link}()
+    vis_data = Dict{CartesianFrame3D, Vector{GeometryData}}()
     for xml_link in xml_links
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
-        body_frame = RigidBodyDynamics.default_frame(mechanism,
-                                                     name_to_body[linkname])
+        body = name_to_body[linkname]
+        body_frame = RigidBodyDynamics.default_frame(body)
         for xml_visual in xml_visuals
             geometries = parse_geometry(Float64,
                                         find_element(xml_visual, "geometry"),
@@ -129,11 +129,10 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
             rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
             geom_frame = CartesianFrame3D("geometry")
             tform = Transform3D(geom_frame, body_frame, rot, trans)
-            add_body_fixed_frame!(mechanism, tform)
+            add_frame!(body, tform)
             for geometry in geometries
-                vis_data[geom_frame] = Link([GeometryData(geometry,
-                                                          IdentityTransformation(),
-                                                          color)])
+                vis_data[geom_frame] = [GeometryData(geometry,
+                                                     color)]
             end
         end
     end
@@ -145,15 +144,11 @@ end
                package_path=ros_package_path())
 
 Extract the visual elements (geometric primitives and meshes) from a URDF
-specified by filename, and use them to build a visualizer for the given
-mechanism.
+specified by filename.
 
 package_path is a vector of strings, used to supply additional search paths
 for `package://` URLs inside the URDF, which is how many URDFs specify the
 locations of their mesh files. By default, package_path will be set from the
 value of your `ROS_PACKAGE_PATH` environment variable.
 """
-function parse_urdf(filename::String, mechanism::Mechanism;
-                    package_path=ros_package_path())
-    Visualizer(parse_urdf_visuals(filename, mechanism; package_path=package_path))
-end
+parse_urdf(args...; kwargs...) = parse_urdf_visuals(args...; kwargs...)

@@ -61,7 +61,7 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
     inertia = spatial_inertia(body)
     com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com")
     com_frame_to_inertia_frame = Transform3D(com_frame, inertia.frame, center_of_mass(inertia).v)
-    add_body_fixed_frame!(mechanism, body, com_frame_to_inertia_frame)
+    add_frame!(body, com_frame_to_inertia_frame)
     inertia = transform(inertia, inv(com_frame_to_inertia_frame))
     principal_inertias, axes = eig(Array(inertia.moment)) # StaticArrays.eig checks that the matrix is Hermitian with zero tolerance...
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
@@ -69,9 +69,9 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
     principal_axes_com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com principal axes")
     inertia_frame_to_com_principal_axes_frame = Transform3D(inertia.frame, principal_axes_com_frame, inv(RotMatrix{3}(axes)), center_of_mass(inertia).v)
-    add_body_fixed_frame!(mechanism, body, inv(inertia_frame_to_com_principal_axes_frame))
+    add_frame!(body, inv(inertia_frame_to_com_principal_axes_frame))
     @assert begin
-        inertia_in_principal_axes = transform(inertia, find_fixed_transform(mechanism, inertia.frame, principal_axes_com_frame))
+        inertia_in_principal_axes = transform(inertia, fixed_transform(mechanism, inertia.frame, principal_axes_com_frame))
         moment = inertia_in_principal_axes.moment
         moment_diagonal = norm(moment - diagm(diag(moment)), Inf) < 1e-8
         com = center_of_mass(inertia_in_principal_axes).v
@@ -82,8 +82,7 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
 end
 
 function create_geometry_for_translation(mechanism, body, joint, radius)
-    joint_to_joint = find_fixed_transform(mechanism, joint.frameBefore,
-                                          default_frame(mechanism, body))
+    joint_to_joint = fixed_transform(mechanism, joint.frameBefore, default_frame(body))
     translation = joint_to_joint.trans
     Rx = rotation_from_x_axis(translation)
     geom_length = norm(translation)
@@ -91,18 +90,30 @@ function create_geometry_for_translation(mechanism, body, joint, radius)
                                                Translation(geom_length / 2, 0, 0)),
                                        LinearMap(AngleAxis(pi/2, 0, 1, 0)))
     frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) joint-to-joint translation")
-    tform = Transform3D(frame, default_frame(mechanism, body),
+    tform = Transform3D(frame, default_frame(body),
                         joint_to_geometry_origin.m,
                         joint_to_geometry_origin.v)
-    add_body_fixed_frame!(mechanism, body, tform)
+    add_frame!(body, tform)
     return HyperCylinder{3, Float64}(geom_length, radius), frame
 end
 
-function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
-    maximum_joint_to_joint_length = maximum([norm(mechanism.jointToJointTransforms[joint].trans) for joint in joints(mechanism)])
-    box_width = 0.05 * maximum_joint_to_joint_length
+function maximum_link_length{T}(mechanism::Mechanism{T})
+    result = zero(T)
+    for vert in mechanism.toposortedTree
+        if !isroot(vert)
+            before_joint = edge_to_parent_data(vert).frameBefore
+            parent_default_frame = default_frame(vertex_data(parent(vert)))
+            transform = fixed_transform(mechanism, parent_default_frame, before_joint)
+            result = max(result, norm(transform.trans))
+        end
+    end
+    result
+end
 
-    vis_data = OrderedDict{CartesianFrame3D, Link}()
+function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors::Bool=true)
+    box_width = 0.05 * maximum_link_length(mechanism)
+
+    vis_data = OrderedDict{CartesianFrame3D, Vector{GeometryData}}()
     link_names = Set()
     for vertex in mechanism.toposortedTree
         if randomize_colors
@@ -113,11 +124,11 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
         body = vertex_data(vertex)
         if show_inertias && has_defined_inertia(body) && spatial_inertia(body).mass >= 1e-3
             ellipsoid, ellipsoid_frame = inertial_ellipsoid(mechanism, body)
-            vis_data[ellipsoid_frame] = GeometryData(ellipsoid, IdentityTransformation(), color)
+            vis_data[ellipsoid_frame] = [GeometryData(ellipsoid, color)]
         else
-            frame = default_frame(mechanism, body)
-            vis_data[frame] = GeometryData(HyperSphere{3, Float64}(
-                zero(Point{3, Float64}), box_width), IdentityTransformation(), color)
+            frame = default_frame(body)
+            vis_data[frame] = [GeometryData(HyperSphere{3, Float64}(
+                zero(Point{3, Float64}), box_width), color)]
         end
         if !isroot(mechanism, body)
             for child in children(vertex)
@@ -126,7 +137,7 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
                                                                    body,
                                                                    joint,
                                                                    box_width / 2)
-                vis_data[geom_frame] = GeometryData(geom, IdentityTransformation(), color)
+                vis_data[geom_frame] = [GeometryData(geom, color)]
             end
         end
     end

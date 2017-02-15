@@ -9,7 +9,7 @@ using IJulia
     # We can draw the mechanism at a single state:
     state = MechanismState(Float64, mechanism)
     rand!(state)
-    draw(vis, state)
+    settransform!(vis, state)
 end
 
 @testset "attach mechanism" begin
@@ -17,12 +17,6 @@ end
     mechanism2 = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
     attach!(mechanism, root_body(mechanism), mechanism2)
     vis = Visualizer(mechanism)
-    previous_names = Set()
-    for frame in keys(vis.links)
-        name = DrakeVisualizer.to_link_name(frame)
-        @test !(name in previous_names)
-        push!(previous_names, name)
-    end
 end
 
 @testset "simulation and animation" begin
@@ -30,7 +24,7 @@ end
     vis = Visualizer(mechanism, show_inertias=true);
     state = MechanismState(Float64, mechanism)
     zero!(state)
-    draw(vis, state)
+    settransform!(vis, state)
     times, states = simulate(state, 1);
     animate(vis, mechanism, times, states)
 end

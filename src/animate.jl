@@ -40,13 +40,13 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
         tic()
         q = interpolated_configurations[t]
         for joint in joints(mechanism)
-            q_range = mechanism.qRanges[joint]
+            q_range = RigidBodyDynamics.configuration_range(state, joint)
             q_joint = q[q_range]
             normalize_configuration!(joint.jointType, q_joint)
             configuration(state, joint)[:] = q_joint
         end
         setdirty!(state)
-        draw(vis, state)
+        settransform!(vis, state)
         sleep(max(dt - toq(), 0) / realtimerate)
     end
 end
