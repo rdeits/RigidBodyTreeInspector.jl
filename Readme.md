@@ -8,7 +8,7 @@ This package provides a simple tool for inspecting and manipulating the kinemati
 * [tkoolen/RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl) to parse and represent kinematic structures
 * [RobotLocomotion/director](https://github.com/RobotLocomotion/director) for 3D visualization
 * [rdeits/DrakeVisualizer.jl](https://github.com/rdeits/DrakeVisualizer.jl) to communicate with `director`
-* [rdeits/PyLCM.jl](https://github.com/rdeits/PyLCM.jl) for message-passing and communication
+* [rdeits/LCMCore.jl](https://github.com/rdeits/LCMCore.jl) for message-passing and communication
 
 ## Demos
 
