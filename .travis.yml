@@ -18,11 +18,5 @@ matrix:
 before_install:
   - mkdir -p $HOME/locomotion
   - git clone --depth=1 https://github.com/RobotLocomotion/drake.git $HOME/locomotion/drake-distro
-script:
-  - julia -e 'Pkg.add("DrakeVisualizer")'
-  - julia -e 'Pkg.checkout("DrakeVisualizer")'
-  - julia -e 'Pkg.clone(pwd())'
-  - julia -e 'Pkg.build("RigidBodyTreeInspector")'
-  - julia --check-bounds=yes --code-coverage=user -e 'cd(joinpath(Pkg.dir("RigidBodyTreeInspector"), "test")); include("runtests.jl")'
 after_success:
   - julia -e 'cd(Pkg.dir("RigidBodyTreeInspector")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
