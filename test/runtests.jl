@@ -25,7 +25,7 @@ end
     state = MechanismState(Float64, mechanism)
     zero!(state)
     settransform!(vis, state)
-    times, states = simulate(state, 1);
+    times, states = simulate(state, 1, Δt = 0.001);
     animate(vis, mechanism, times, states)
 end
 
