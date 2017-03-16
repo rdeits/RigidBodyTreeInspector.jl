@@ -28,7 +28,7 @@ callback(state) each time a slider is changed. This mutates the state in-place.
 """
 function manipulate!(callback::Function, state::MechanismState)
     mechanism = state.mechanism
-    mech_joints = [edge_to_parent_data(v) for v in mechanism.toposortedTree[2:end]]
+    mech_joints = tree_joints(mechanism)
     num_sliders_per_joint = map(num_sliders, mech_joints)
     slider_names = String[]
     for (i, joint) in enumerate(mech_joints)
