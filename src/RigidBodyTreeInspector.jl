@@ -3,12 +3,9 @@ module RigidBodyTreeInspector
 using FileIO
 using RigidBodyDynamics
 import RigidBodyDynamics: parse_urdf,
-                          edge_to_parent_data,
-                          vertex_data,
                           spatial_inertia,
                           has_defined_inertia,
                           default_frame
-import RigidBodyDynamics.TreeDataStructure: children
 import DrakeVisualizer: Visualizer,
                         settransform!,
                         setgeometry!,

@@ -99,13 +99,10 @@ end
 
 function maximum_link_length{T}(mechanism::Mechanism{T})
     result = zero(T)
-    for vert in mechanism.toposortedTree
-        if !isroot(vert)
-            before_joint = edge_to_parent_data(vert).frameBefore
-            parent_default_frame = default_frame(vertex_data(parent(vert)))
-            transform = fixed_transform(mechanism, parent_default_frame, before_joint)
-            result = max(result, norm(transform.trans))
-        end
+    for joint in tree_joints(mechanism)
+        parent_default_frame = default_frame(predecessor(joint, mechanism))
+        transform = fixed_transform(mechanism, parent_default_frame, frame_before(joint))
+        result = max(result, norm(transform.trans))
     end
     result
 end
@@ -115,13 +112,12 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
 
     vis_data = OrderedDict{CartesianFrame3D, Vector{GeometryData}}()
     link_names = Set()
-    for vertex in mechanism.toposortedTree
+    for body in bodies(mechanism)
         if randomize_colors
             color = RGBA{Float64}(rand(3)..., 0.5)
         else
             color = RGBA{Float64}(1, 0, 0, 0.5)
         end
-        body = vertex_data(vertex)
         if show_inertias && has_defined_inertia(body) && spatial_inertia(body).mass >= 1e-3
             ellipsoid, ellipsoid_frame = inertial_ellipsoid(mechanism, body)
             vis_data[ellipsoid_frame] = [GeometryData(ellipsoid, color)]
@@ -130,9 +126,8 @@ function create_geometry(mechanism; show_inertias::Bool=false, randomize_colors:
             vis_data[frame] = [GeometryData(HyperSphere{3, Float64}(
                 zero(Point{3, Float64}), box_width), color)]
         end
-        if !isroot(mechanism, body)
-            for child in children(vertex)
-                joint = edge_to_parent_data(child)
+        if !isroot(body, mechanism)
+            for joint in joints_to_children(body, mechanism)
                 geom, geom_frame = create_geometry_for_translation(mechanism,
                                                                    body,
                                                                    joint,
