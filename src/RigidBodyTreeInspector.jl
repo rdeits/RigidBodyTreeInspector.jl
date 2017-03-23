@@ -5,7 +5,8 @@ using RigidBodyDynamics
 import RigidBodyDynamics: parse_urdf,
                           spatial_inertia,
                           has_defined_inertia,
-                          default_frame
+                          default_frame,
+                          OdeIntegrators
 import DrakeVisualizer: Visualizer,
                         settransform!,
                         setgeometry!,
@@ -35,12 +36,14 @@ export manipulate,
        setgeometry!,
        animate,
        parse_urdf,
-       create_geometry
+       create_geometry,
+       DrakeVisualizerSink
 
 include("geometry.jl")
 include("manipulate.jl")
 include("visualizer.jl")
 include("animate.jl")
 include("parse_urdf.jl")
+include("ode_callback.jl")
 
 end
