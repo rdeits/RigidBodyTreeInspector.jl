@@ -2,3 +2,5 @@ packages/v0.5/*
 packages/.cache
 packages/lib
 !packages/v0.5/RigidBodyTreeInspector
+*.ipynb_checkpoints
+
