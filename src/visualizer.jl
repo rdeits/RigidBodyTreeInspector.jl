@@ -51,7 +51,7 @@ function Visualizer(frame_geometries::Associative{CartesianFrame3D, Vector{Geome
 end
 
 convert(::Type{AffineMap}, T::Transform3D) =
-    AffineMap(T.rot, T.trans)
+    AffineMap(rotation(T), translation(T))
 
 inspect!(state::MechanismState, vis::Visualizer) = manipulate!(state) do state
     settransform!(vis, state)
