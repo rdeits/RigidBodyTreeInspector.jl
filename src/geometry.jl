@@ -83,9 +83,9 @@ end
 
 function create_geometry_for_translation(mechanism, body, joint, radius)
     joint_to_joint = fixed_transform(mechanism, joint.frameBefore, default_frame(body))
-    translation = joint_to_joint.trans
-    Rx = rotation_from_x_axis(translation)
-    geom_length = norm(translation)
+    trans = translation(joint_to_joint)
+    Rx = rotation_from_x_axis(trans)
+    geom_length = norm(trans)
     joint_to_geometry_origin = compose(compose(LinearMap(Rx),
                                                Translation(geom_length / 2, 0, 0)),
                                        LinearMap(AngleAxis(pi/2, 0, 1, 0)))
@@ -102,7 +102,7 @@ function maximum_link_length{T}(mechanism::Mechanism{T})
     for joint in tree_joints(mechanism)
         parent_default_frame = default_frame(predecessor(joint, mechanism))
         transform = fixed_transform(mechanism, parent_default_frame, frame_before(joint))
-        result = max(result, norm(transform.trans))
+        result = max(result, norm(translation(transform)))
     end
     result
 end
