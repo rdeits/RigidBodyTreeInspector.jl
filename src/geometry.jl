@@ -67,10 +67,12 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
 end
 
 function create_frame_to_frame_geometry(mechanism, body, frame1, frame2, radius)
+    T = eltype(mechanism)
     joint_to_joint = fixed_transform(mechanism, frame1, frame2)
     trans = translation(joint_to_joint)
-    Rx = rotation_from_x_axis(trans)
     geom_length = norm(trans)
+    Rx = geom_length > 1e-10 ? rotation_from_x_axis(trans) : eye(Rotations.RotMatrix{3, T})
+
     joint_to_geometry_origin = compose(compose(LinearMap(Rx),
                                                Translation(geom_length / 2, 0, 0)),
                                        LinearMap(AngleAxis(pi/2, 0, 1, 0)))
