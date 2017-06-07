@@ -1,19 +1,4 @@
-function rotation_between{T}(from::AbstractVector{T}, to::AbstractVector{T})
-    from /= norm(from)
-    to /= norm(to)
-    costheta = dot(from, to)
-    p = cross(from, to)
-    sintheta = norm(p)
-    if sintheta > 0
-        axis = p / sintheta
-        angle = atan2(sintheta, costheta)
-        return AngleAxis(angle, axis[1], axis[2], axis[3])
-    else
-        return AngleAxis(0.0, 1, 0, 0)
-    end
-end
-
-rotation_from_x_axis{T}(translation::AbstractVector{T}) = rotation_between(SVector{3, T}(1,0,0), translation)
+rotation_from_x_axis{T}(translation::AbstractVector{T}) = Rotations.rotation_between(SVector{3, T}(1,0,0), translation)
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix = m/5 (dy^2 + dz^2)
