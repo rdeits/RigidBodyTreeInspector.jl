@@ -39,7 +39,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
     for t in times[1] : dt : times[end]
         tic()
         q = interpolated_configurations[t]
-        for joint in joints(mechanism)
+        for joint in tree_joints(mechanism)
             q_range = RigidBodyDynamics.configuration_range(state, joint)
             q_joint = q[q_range]
             normalize_configuration!(joint.jointType, q_joint)
