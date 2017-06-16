@@ -31,6 +31,7 @@ import MeshIO
 
 export manipulate,
        inspect,
+       inspect!,
        Visualizer,
        settransform!,
        setgeometry!,
