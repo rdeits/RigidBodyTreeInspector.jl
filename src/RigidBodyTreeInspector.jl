@@ -18,7 +18,11 @@ import StaticArrays: SVector, SMatrix
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,
                                   Translation, RotMatrix, RotXYZ
-import GeometryTypes: AbstractGeometry, HyperRectangle, HyperSphere, Vec, Point
+import GeometryTypes: AbstractGeometry,
+                      AbstractMesh,
+                      HyperRectangle, 
+                      HyperSphere,
+                      Vec, Point
 import DataStructures: OrderedDict
 import ColorTypes: RGBA
 import Interact

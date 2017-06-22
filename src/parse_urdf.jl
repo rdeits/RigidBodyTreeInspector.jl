@@ -25,14 +25,14 @@ function parse_pose{T}(::Type{T}, xml_pose::XMLElement)
 end
 
 function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
-    geometries = AbstractGeometry[]
+    geometries = Union{AbstractGeometry, AbstractMesh}[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
         radius = parse_scalar(Float64, xml_cylinder, "radius")
         push!(geometries, HyperCylinder{3, Float64}(length, radius))
     end
     for xml_box in get_elements_by_tagname(xml_geometry, "box")
-        size = Vec(parse_vector(Float64, xml_box, "size", "0 0 0"))
+        size = Vec{3, Float64}(parse_vector(Float64, xml_box, "size", "0 0 0"))
         push!(geometries, HyperRectangle(-size / 2, size))
     end
     for xml_sphere in get_elements_by_tagname(xml_geometry, "sphere")
