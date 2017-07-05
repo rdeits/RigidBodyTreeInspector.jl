@@ -8,7 +8,12 @@ julia:
   - 0.6
   - nightly
 notifications:
-  email: false
+  email:
+    - recipients:
+      - rdeits@mit.edu
+      - tkoolen@mit.edu
+    - on_success: never
+    - on_failure: change
 branches:
   only: master
 matrix:
