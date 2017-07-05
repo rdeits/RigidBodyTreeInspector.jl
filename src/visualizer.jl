@@ -1,5 +1,3 @@
-const rbd = RigidBodyDynamics
-
 unique_frame_name(frame::CartesianFrame3D) =
     Symbol("$(rbd.name(frame))_(#$(frame.id))")
 

@@ -7,6 +7,7 @@ import RigidBodyDynamics: parse_urdf,
                           has_defined_inertia,
                           default_frame,
                           OdeIntegrators
+using RigidBodyDynamics.Graphs
 import DrakeVisualizer: Visualizer,
                         settransform!,
                         setgeometry!,
@@ -20,7 +21,7 @@ import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   Translation, RotMatrix, RotXYZ
 import GeometryTypes: AbstractGeometry,
                       AbstractMesh,
-                      HyperRectangle, 
+                      HyperRectangle,
                       HyperSphere,
                       Vec, Point
 import DataStructures: OrderedDict
@@ -32,6 +33,8 @@ import LightXML: XMLElement, parse_file, root, get_elements_by_tagname,
                  attribute, find_element, name
 import Rotations
 import MeshIO
+
+const rbd = RigidBodyDynamics
 
 export manipulate,
        inspect,
