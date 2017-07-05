@@ -39,7 +39,7 @@ function inertial_ellipsoid_dimensions(mass, axis_inertias)
         end
     end
 
-    return √(squared_lengths)
+    return sqrt.(squared_lengths)
 end
 
 function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
