@@ -101,24 +101,56 @@ end
 
 ros_package_path() = split(get(ENV, "ROS_PACKAGE_PATH", ""), ':')
 
+function create_graph(xml_links, xml_joints)
+    # create graph structure of XML elements
+    graph = DirectedGraph{Vertex{XMLElement}, Edge{XMLElement}}()
+    vertices = Vertex.(xml_links)
+    for vertex in vertices
+        add_vertex!(graph, vertex)
+    end
+    name_to_vertex = Dict(attribute(data(v), "name") => v for v in vertices)
+    for xml_joint in xml_joints
+        parent = name_to_vertex[attribute(find_element(xml_joint, "parent"), "link")]
+        child = name_to_vertex[attribute(find_element(xml_joint, "child"), "link")]
+        add_edge!(graph, parent, child, Edge(xml_joint))
+    end
+    graph
+end
+
 function parse_urdf_visuals(filename::String, mechanism::Mechanism;
                             package_path=ros_package_path())
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
-    xml_links = get_elements_by_tagname(xroot, "link")
-    xml_materials = get_elements_by_tagname(xroot, "material")
-    named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
 
-    name_to_body = Dict(zip(map(RigidBodyDynamics.name, bodies(mechanism)),
-                            bodies(mechanism)))
+    xml_links = get_elements_by_tagname(xroot, "link")
+    xml_joints = get_elements_by_tagname(xroot, "joint")
+    xml_materials = get_elements_by_tagname(xroot, "material")
+
+    graph = create_graph(xml_links, xml_joints)
+    roots = collect(filter(v -> isempty(in_edges(v, graph)), vertices(graph)))
+    length(roots) != 1 && error("Can only handle a single root")
+    tree = SpanningTree(graph, first(roots))
+
+    named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
+    name_to_frame_and_body = Dict(rbd.name(tf.from) => (tf.from, body) for body in bodies(mechanism) for tf in rbd.frame_definitions(body))
 
     vis_data = Dict{CartesianFrame3D, Vector{GeometryData}}()
-    for xml_link in xml_links
+    for vertex in vertices(tree)
+        xml_link = data(vertex)
         xml_visuals = get_elements_by_tagname(xml_link, "visual")
         linkname = attribute(xml_link, "name")
-        body = name_to_body[linkname]
-        body_frame = RigidBodyDynamics.default_frame(body)
+        framename = if vertex == rbd.Graphs.root(tree)
+            linkname
+        else
+            xml_joint = data(edge_to_parent(vertex, tree))
+            jointname = attribute(xml_joint, "name")
+            string("after_", jointname) # TODO: create function in RBD, call it here
+        end
+
+        !haskey(name_to_frame_and_body, framename) && continue
+        body_frame, body = name_to_frame_and_body[framename]
+
         for xml_visual in xml_visuals
             geometries = parse_geometry(Float64,
                                         find_element(xml_visual, "geometry"),
@@ -128,13 +160,12 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
                                    named_colors)
             rot, trans = parse_pose(Float64, find_element(xml_visual, "origin"))
             geom_frame = CartesianFrame3D("geometry")
-            tform = Transform3D(geom_frame, body_frame, rot, trans)
-            add_frame!(body, tform)
+            add_frame!(body, Transform3D(geom_frame, body_frame, rot, trans))
             for geometry in geometries
-                vis_data[geom_frame] = [GeometryData(geometry,
-                                                     color)]
+                vis_data[geom_frame] = [GeometryData(geometry, color)]
             end
         end
+
     end
     return vis_data
 end
