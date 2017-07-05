@@ -32,7 +32,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
                  times::Vector{Float64},
                  configurations::Vector{Vector{Float64}};
                  fps::Float64 = 30., realtimerate::Float64 = 1.)
-    state = MechanismState(Float64, mechanism)
+    state = MechanismState{Float64}(mechanism)
     dt = 1. / fps
     interp_values = InterpolatableArray{Vector{Float64}}[InterpolatableArray(c) for c in configurations]
     interpolated_configurations = interpolate((times,), interp_values, Gridded(Linear()))

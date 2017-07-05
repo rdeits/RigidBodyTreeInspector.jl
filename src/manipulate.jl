@@ -58,4 +58,4 @@ callback(state) each time a slider is changed. This constructs a new
 MechanismState object to mutate internally.
 """
 manipulate(callback::Function, mechanism::Mechanism) =
-    manipulate(callback, MechanismState(Float64, mechanism))
+    manipulate(callback, MechanismState{Float64}(mechanism))

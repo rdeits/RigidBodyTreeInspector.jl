@@ -67,4 +67,4 @@ function inspect!(state::MechanismState;
 end
 
 inspect(mechanism::Mechanism, args...; kwargs...) =
-    inspect!(MechanismState(Float64, mechanism), args...; kwargs...)
+    inspect!(MechanismState{Float64}(mechanism), args...; kwargs...)

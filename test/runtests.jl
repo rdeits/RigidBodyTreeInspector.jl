@@ -7,7 +7,7 @@ using IJulia
     mechanism = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
     vis = Visualizer(mechanism; show_inertias=true);
     # We can draw the mechanism at a single state:
-    state = MechanismState(Float64, mechanism)
+    state = MechanismState{Float64}(mechanism)
     rand!(state)
     settransform!(vis, state)
 end
@@ -22,7 +22,7 @@ end
 @testset "simulation and animation" begin
     mechanism = rand_chain_mechanism(Float64, [Revolute{Float64} for i = 1:10]...)
     vis = Visualizer(mechanism, show_inertias=true);
-    state = MechanismState(Float64, mechanism)
+    state = MechanismState{Float64}(mechanism)
     zero!(state)
     settransform!(vis, state)
     times, states = simulate(state, 1, Δt = 0.001);
