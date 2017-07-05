@@ -1,31 +1,65 @@
-to_link_name(frame::CartesianFrame3D) =
-    Symbol("$(RigidBodyDynamics.name(frame))_(#$(frame.id))")
+const rbd = RigidBodyDynamics
 
+unique_frame_name(frame::CartesianFrame3D) =
+    Symbol("$(rbd.name(frame))_(#$(frame.id))")
 
-function setgeometry!(vis::Visualizer,
-                      frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}})
+Base.@deprecate to_link_name(frame::CartesianFrame3D) unique_frame_name(frame)
+
+const FrameGeometries = Associative{CartesianFrame3D, Vector{GeometryData}}
+
+function setgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::FrameGeometries=create_geometry(mechanism))
+    body_names = Set{Symbol}()
     batch(vis) do v
         delete!(v)
-        for (frame, geoms) in frame_geometries
-            for (i, geom) in enumerate(geoms)
-                setgeometry!(v[to_link_name(frame)][Symbol("geometry$i")], geom)
+        for body in bodies(mechanism)
+            body_name = Symbol(rbd.name(body))
+            if body_name in body_names
+                error("Duplicate body name in mechanism")
+            end
+            push!(body_names, body_name)
+            bodyvis = v[body_name]
+            for transform in rbd.frame_definitions(body)
+                frame = transform.from
+                framename = unique_frame_name(frame)
+                if haskey(frame_geometries, frame)
+                    setgeometry!(bodyvis[framename], frame_geometries[frame])
+                    settransform!(bodyvis[framename], rbd.frame_definition(body, frame))
+                end
             end
         end
     end
 end
 
+function setgeometry!(vis::Visualizer,
+                      frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}})
+    error("""
+setgeometry!(vis, frame_geometries) has been updated to take the Mechanism
+object as its second argument. Please call it using the syntax:
+
+    setgeometry!(vis, mechanism, frame_geometries)
+
+For example, if you were previously doing
+
+    setgeometry!(vis, create_geometry(mechanism))
+
+you should now call:
+
+    setgeometry!(vis, mechanism, create_geometry(mechanism))
+
+which is equivalent to the new, simpler version:
+
+    setgeometry!(vis, mechanism)
+""")
+end
+
+settransform!(vis::Visualizer, tform::rbd.Transform3D) = settransform!(vis, convert(AffineMap, tform))
+
 function settransform!(vis::Visualizer, state::MechanismState)
     batch(vis) do v
         for body in bodies(state.mechanism)
-            for transform in RigidBodyDynamics.frame_definitions(body)
-                frame = transform.from
-                framename = to_link_name(frame)
-                if framename in keys(vis.core.tree[vis.path].children)
-                    framevis = v[to_link_name(frame)]
-                    settransform!(framevis,
-                                  convert(AffineMap,
-                                          transform_to_root(state, frame)))
-                end
+            body_name = Symbol(rbd.name(body))
+            if body_name in keys(v.core.tree[v.path].children)
+                settransform!(v[body_name], transform_to_root(state, body))
             end
         end
     end
@@ -60,9 +94,10 @@ end
 function inspect!(state::MechanismState;
         show_inertias::Bool=false, randomize_colors::Bool=true)
     vis = Visualizer()[:robot1]
-    setgeometry!(vis, create_geometry(state.mechanism;
-                               show_inertias=show_inertias,
-                               randomize_colors=randomize_colors))
+    setgeometry!(vis, state.mechanism,
+                 create_geometry(state.mechanism;
+                                 show_inertias=show_inertias,
+                                 randomize_colors=randomize_colors))
     inspect!(state, vis)
 end
 
