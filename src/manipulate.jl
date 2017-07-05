@@ -48,6 +48,7 @@ function manipulate!(callback::Function, state::MechanismState)
         setdirty!(state)
         callback(state)
     end
+    return
 end
 
 """
