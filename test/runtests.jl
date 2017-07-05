@@ -14,7 +14,8 @@ end
 
 @testset "attach mechanism" begin
     mechanism = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
-    mechanism2 = rand_chain_mechanism(Float64, [QuaternionFloating{Float64}; [Revolute{Float64} for i = 1:5]]...)
+    urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
+    mechanism2 = RigidBodyDynamics.parse_urdf(Float64, urdf)
     attach!(mechanism, root_body(mechanism), mechanism2)
     vis = Visualizer(mechanism)
 end
@@ -32,6 +33,10 @@ end
 @testset "urdf mechanism" begin
     urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
+    vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
+    remove_fixed_tree_joints!(mechanism)
+    vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
+    mechanism, _ = submechanism(mechanism, bodies(mechanism)[2])
     vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
 end
 
