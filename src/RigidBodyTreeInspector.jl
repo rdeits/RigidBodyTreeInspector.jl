@@ -13,10 +13,12 @@ using RigidBodyDynamics.Graphs
 import DrakeVisualizer: Visualizer,
                         settransform!,
                         setgeometry!,
+                        addgeometry!,
                         batch,
                         GeometryData,
                         HyperEllipsoid,
-                        HyperCylinder
+                        HyperCylinder,
+                        Triad
 import StaticArrays: SVector, SMatrix
 import CoordinateTransformations: AffineMap, IdentityTransformation, AngleAxis,
                                   LinearMap, RodriguesVec, Quat, compose,
@@ -43,6 +45,7 @@ export manipulate,
        inspect!,
        Visualizer,
        settransform!,
+       addgeometry!,
        setgeometry!,
        animate,
        parse_urdf,

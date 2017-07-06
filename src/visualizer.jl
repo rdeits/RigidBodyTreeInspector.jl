@@ -3,12 +3,19 @@ unique_frame_name(frame::CartesianFrame3D) =
 
 Base.@deprecate to_link_name(frame::CartesianFrame3D) unique_frame_name(frame)
 
-const FrameGeometries = Associative{CartesianFrame3D, Vector{GeometryData}}
+const FrameGeometries = Associative{CartesianFrame3D, <:AbstractVector}
 
 function setgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::FrameGeometries=create_geometry(mechanism))
-    body_names = Set{Symbol}()
     batch(vis) do v
         delete!(v)
+        addgeometry!(vis, mechanism, frame_geometries)
+    end
+    nothing
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::FrameGeometries=create_geometry(mechanism))
+    body_names = Set{Symbol}()
+    batch(vis) do v
         for body in bodies(mechanism)
             body_name = Symbol(rbd.name(body))
             if body_name in body_names
@@ -16,16 +23,36 @@ function setgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::F
             end
             push!(body_names, body_name)
             bodyvis = v[body_name]
+            found_geometry = false
             for transform in rbd.frame_definitions(body)
                 frame = transform.from
                 framename = unique_frame_name(frame)
                 if haskey(frame_geometries, frame)
-                    setgeometry!(bodyvis[framename], frame_geometries[frame])
+                    found_geometry = true
+                    for geometry in frame_geometries[frame]
+                        addgeometry!(bodyvis[framename], geometry)
+                    end
                     settransform!(bodyvis[framename], rbd.frame_definition(body, frame))
                 end
             end
+            if !found_geometry
+                setgeometry!(bodyvis, [])
+            end
         end
     end
+    nothing
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geometry)
+    addgeometry!(vis, mechanism, Dict(frame => [geometry]))
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D; scale=1.0)
+    addgeometry!(vis, mechanism, frame, Triad(scale, false))
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, point::Point3D; radius=0.03)
+    addgeometry!(vis, mechanism, point.frame, HyperSphere(Point{3, Float64}(point.v), radius))
 end
 
 function setgeometry!(vis::Visualizer,
