@@ -3,7 +3,7 @@ ColorTypes 0.2.0
 Rotations 0.5
 CoordinateTransformations 0.4.1
 DataStructures 0.4.3
-DrakeVisualizer 0.2.0
+DrakeVisualizer 0.2.1
 FileIO 0.1.0
 GeometryTypes 0.4.0
 IJulia 1.3.2
