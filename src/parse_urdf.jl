@@ -83,7 +83,7 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
     geometries
 end
 
-function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{String, RGBA{T}})
+function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{String, RGBA{T}}=Dict{String, RGBA{T}}())
     default = "0.7 0.7 0.7 1."
     if xml_material == nothing
         color = RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
