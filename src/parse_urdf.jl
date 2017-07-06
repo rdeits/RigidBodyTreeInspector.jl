@@ -24,7 +24,7 @@ function parse_pose{T}(::Type{T}, xml_pose::XMLElement)
     rot, trans
 end
 
-function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
+function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path, file_path)
     geometries = Union{AbstractGeometry, AbstractMesh}[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
@@ -68,6 +68,7 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
                 warn(warning_message)
             end
         else
+            filename = joinpath(file_path, filename)
             if ispath(filename)
                 mesh = load(filename)
                 push!(geometries, mesh)
@@ -118,7 +119,7 @@ function create_graph(xml_links, xml_joints)
 end
 
 function parse_urdf_visuals(filename::String, mechanism::Mechanism;
-                            package_path=ros_package_path())
+                            package_path=ros_package_path(), file_path="")
     xdoc = parse_file(filename)
     xroot = root(xdoc)
     @assert name(xroot) == "robot"
@@ -154,7 +155,7 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
         for xml_visual in xml_visuals
             geometries = parse_geometry(Float64,
                                         find_element(xml_visual, "geometry"),
-                                        package_path)
+                                        package_path, file_path)
             color = parse_material(Float64,
                                    find_element(xml_visual, "material"),
                                    named_colors)
