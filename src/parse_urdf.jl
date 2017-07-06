@@ -8,7 +8,7 @@ end
 
 function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::String, default::String)
     usedefault = e == nothing || attribute(e, name) == nothing
-    [T(parse(str)) for str in split(usedefault ? default : attribute(e, name), " ")]
+    [T(parse(str)) for str in split(usedefault ? default : strip(attribute(e, name)), " ")]
 end
 
 function parse_pose{T}(::Type{T}, xml_pose::Void)
