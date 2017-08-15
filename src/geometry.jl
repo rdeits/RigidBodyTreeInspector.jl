@@ -1,4 +1,4 @@
-rotation_from_x_axis{T}(translation::AbstractVector{T}) = Rotations.rotation_between(SVector{3, T}(1,0,0), translation)
+rotation_from_x_axis(translation::AbstractVector{T}) where {T} = Rotations.rotation_between(SVector{3, T}(1,0,0), translation)
 
 function inertial_ellipsoid_dimensions(mass, axis_inertias)
     # Ix = m/5 (dy^2 + dz^2)
@@ -84,7 +84,7 @@ function create_frame_to_frame_geometry(mechanism, body, frame1, frame2, radius)
     HyperCylinder{3, Float64}(geom_length, radius), frame
 end
 
-function maximum_link_length{T}(body_fixed_joint_frames::Dict{RigidBody{T}, Vector{CartesianFrame3D}})
+function maximum_link_length(body_fixed_joint_frames::Dict{RigidBody{T}, Vector{CartesianFrame3D}}) where T
     result = zero(T)
     for (body, joint_frames) in body_fixed_joint_frames
         for framei in joint_frames, framej in joint_frames

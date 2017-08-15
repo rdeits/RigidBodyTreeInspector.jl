@@ -4,11 +4,11 @@ type we want to interpolate. Rather than defining one(::Type{Vector}) here,
 which might have unforeseen consequences in other packages, we'll create
 a very simple wrapper type that just knows one() and *
 """
-immutable InterpolatableArray{A <: AbstractArray}
+struct InterpolatableArray{A <: AbstractArray}
     data::A
 end
 
-one{A}(::Type{InterpolatableArray{A}}) = 1
+one(::Type{InterpolatableArray{A}}) where {A} = 1
 *(n::Number, a::InterpolatableArray) = n * a.data
 
 normalize_configuration!(jointType::JointType, q) = nothing

@@ -6,14 +6,14 @@ the rotation in exponential map form. Those three sliders then have to be
 converted into a quaternion to set the joint configuration. We do this because
 interacting with the four components of a quaternion is quite unintuitive.
 """
-function joint_configuration{T}(jointType::RigidBodyDynamics.QuaternionFloating,
-                                sliders::NTuple{6, T})
+function joint_configuration(jointType::RigidBodyDynamics.QuaternionFloating,
+                             sliders::NTuple{6, T}) where T
     q = collect(sliders)
     quat = Quat(RodriguesVec(q[1], q[2], q[3]))
     vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
-joint_configuration{T}(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis,
-                       sliders::NTuple{1, T}) = collect(sliders)
+joint_configuration(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis,
+                    sliders::NTuple{1, T}) where {T} = collect(sliders)
 joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
 num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6

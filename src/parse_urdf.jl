@@ -1,30 +1,30 @@
-function parse_scalar{T}(::Type{T}, e::XMLElement, name::String)
+function parse_scalar(::Type{T}, e::XMLElement, name::String) where T
     T(parse(attribute(e, name)))
 end
 
-function parse_scalar{T}(::Type{T}, e::XMLElement, name::String, default::String)
+function parse_scalar(::Type{T}, e::XMLElement, name::String, default::String) where T
     T(parse(e == nothing ? default : attribute(e, name)))
 end
 
-function parse_vector{T}(::Type{T}, e::Union{XMLElement, Void}, name::String, default::String)
+function parse_vector(::Type{T}, e::Union{XMLElement, Void}, name::String, default::String) where T
     usedefault = e == nothing || attribute(e, name) == nothing
     [T(parse(str)) for str in split(usedefault ? default : strip(attribute(e, name)), " ")]
 end
 
-function parse_pose{T}(::Type{T}, xml_pose::Void)
+function parse_pose(::Type{T}, xml_pose::Void) where T
     rot = eye(RotMatrix{3, T})
     trans = zero(SVector{3, T})
     rot, trans
 end
 
-function parse_pose{T}(::Type{T}, xml_pose::XMLElement)
+function parse_pose(::Type{T}, xml_pose::XMLElement) where T
     rpy = RotXYZ(parse_vector(T, xml_pose, "rpy", "0 0 0")...)
     rot = RotMatrix(rpy)
     trans = SVector{3}(parse_vector(T, xml_pose, "xyz", "0 0 0"))
     rot, trans
 end
 
-function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
+function parse_geometry(::Type{T}, xml_geometry::XMLElement, package_path) where T
     geometries = Union{AbstractGeometry, AbstractMesh}[]
     for xml_cylinder in get_elements_by_tagname(xml_geometry, "cylinder")
         length = parse_scalar(Float64, xml_cylinder, "length")
@@ -83,7 +83,7 @@ function parse_geometry{T}(::Type{T}, xml_geometry::XMLElement, package_path)
     geometries
 end
 
-function parse_material{T}(::Type{T}, xml_material, named_colors::Dict{String, RGBA{T}}=Dict{String, RGBA{T}}())
+function parse_material(::Type{T}, xml_material, named_colors::Dict{String, RGBA{T}}=Dict{String, RGBA{T}}()) where T
     default = "0.7 0.7 0.7 1."
     if xml_material == nothing
         color = RGBA{T}(parse_vector(T, nothing, "rgba", default)...)
