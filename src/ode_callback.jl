@@ -1,4 +1,4 @@
-type DrakeVisualizerSink <: OdeIntegrators.OdeResultsSink
+mutable struct DrakeVisualizerSink <: OdeIntegrators.OdeResultsSink
     vis::Visualizer
     min_wall_Δt::Float64
     last_update_wall_time::Float64
