@@ -11,8 +11,8 @@ end
 one(::Type{InterpolatableArray{A}}) where {A} = 1
 *(n::Number, a::InterpolatableArray) = n * a.data
 
-normalize_configuration!(jointType::JointType, q) = nothing
-function normalize_configuration!(jointType::QuaternionFloating, q)
+normalize_configuration!(joint_type::JointType, q) = nothing
+function normalize_configuration!(joint_type::QuaternionFloating, q)
     n = norm(q[1:4])
     for i = 1:4
         q[i] /= n
@@ -42,7 +42,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
         for joint in tree_joints(mechanism)
             q_range = RigidBodyDynamics.configuration_range(state, joint)
             q_joint = q[q_range]
-            normalize_configuration!(joint.jointType, q_joint)
+            normalize_configuration!(joint_type(joint), q_joint)
             configuration(state, joint)[:] = q_joint
         end
         setdirty!(state)
