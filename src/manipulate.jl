@@ -18,7 +18,7 @@ joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
 num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
 num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
-num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
+num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
 
 """
     manipulate!(callback::Function, state::MechanismState)
@@ -42,7 +42,7 @@ function manipulate!(callback::Function, state::MechanismState)
     foreach(map(Interact.signal, widgets)...) do q...
         slider_index = 1
         for (i, joint) in enumerate(mech_joints)
-            configuration(state, joint)[:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
+            configuration(state, joint)[:] = joint_configuration(joint_type(joint), q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
             slider_index += num_sliders_per_joint[i]
         end
         setdirty!(state)
