@@ -1,3 +1,7 @@
+joint_configuration(joint_type::JointType, sliders::NTuple) = collect(sliders)
+num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
+num_sliders(joint_type::JointType) = num_positions(joint_type)
+
 """
 joint_configuration maps the slider values to a joint configuration vector.
 For a quaternion floating joint, this is nontrivial because we create three
@@ -12,13 +16,7 @@ function joint_configuration(joint_type::RigidBodyDynamics.QuaternionFloating,
     quat = Quat(RodriguesVec(q[1], q[2], q[3]))
     vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
-joint_configuration(joint_type::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis,
-                    sliders::NTuple{1, T}) where {T} = collect(sliders)
-joint_configuration(joint_type::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
-num_sliders(joint_type::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(joint_type::RigidBodyDynamics.QuaternionFloating) = 6
-num_sliders(joint_type::RigidBodyDynamics.Fixed) = 0
-num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
 
 """
     manipulate!(callback::Function, state::MechanismState)
