@@ -1,6 +1,6 @@
-joint_configuration(jointType::JointType, sliders::NTuple) = collect(sliders)
+joint_configuration(joint_type::JointType, sliders::NTuple) = collect(sliders)
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
-num_sliders(jointType::JointType) = num_positions(jointType)
+num_sliders(joint_type::JointType) = num_positions(joint_type)
 
 """
 joint_configuration maps the slider values to a joint configuration vector.
@@ -10,13 +10,13 @@ the rotation in exponential map form. Those three sliders then have to be
 converted into a quaternion to set the joint configuration. We do this because
 interacting with the four components of a quaternion is quite unintuitive.
 """
-function joint_configuration(jointType::RigidBodyDynamics.QuaternionFloating,
+function joint_configuration(joint_type::RigidBodyDynamics.QuaternionFloating,
                              sliders::NTuple{6, T}) where T
     q = collect(sliders)
     quat = Quat(RodriguesVec(q[1], q[2], q[3]))
     vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
-num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
+num_sliders(joint_type::RigidBodyDynamics.QuaternionFloating) = 6
 
 """
     manipulate!(callback::Function, state::MechanismState)
