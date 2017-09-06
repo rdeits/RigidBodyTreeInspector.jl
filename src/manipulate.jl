@@ -1,3 +1,7 @@
+joint_configuration(jointType::JointType, sliders::NTuple) = collect(sliders)
+num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
+num_sliders(jointType::JointType) = num_positions(jointType)
+
 """
 joint_configuration maps the slider values to a joint configuration vector.
 For a quaternion floating joint, this is nontrivial because we create three
@@ -12,13 +16,7 @@ function joint_configuration(jointType::RigidBodyDynamics.QuaternionFloating,
     quat = Quat(RodriguesVec(q[1], q[2], q[3]))
     vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
-joint_configuration(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis,
-                    sliders::NTuple{1, T}) where {T} = collect(sliders)
-joint_configuration(jointType::RigidBodyDynamics.Fixed, sliders::Tuple{}) = []
-num_sliders(jointType::RigidBodyDynamics.OneDegreeOfFreedomFixedAxis) = 1
 num_sliders(jointType::RigidBodyDynamics.QuaternionFloating) = 6
-num_sliders(jointType::RigidBodyDynamics.Fixed) = 0
-num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint.jointType)
 
 """
     manipulate!(callback::Function, state::MechanismState)
@@ -42,7 +40,7 @@ function manipulate!(callback::Function, state::MechanismState)
     foreach(map(Interact.signal, widgets)...) do q...
         slider_index = 1
         for (i, joint) in enumerate(mech_joints)
-            configuration(state, joint)[:] = joint_configuration(joint.jointType, q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
+            configuration(state, joint)[:] = joint_configuration(joint_type(joint), q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
             slider_index += num_sliders_per_joint[i]
         end
         setdirty!(state)
