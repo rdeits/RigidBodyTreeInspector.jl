@@ -134,7 +134,7 @@ function parse_urdf_visuals(filename::String, mechanism::Mechanism;
     tree = SpanningTree(graph, first(roots))
 
     named_colors = Dict(attribute(m, "name")::String => parse_material(Float64, m)::RGBA{Float64} for m in xml_materials)
-    name_to_frame_and_body = Dict(rbd.name(tf.from) => (tf.from, body) for body in bodies(mechanism) for tf in rbd.frame_definitions(body))
+    name_to_frame_and_body = Dict(string(tf.from) => (tf.from, body) for body in bodies(mechanism) for tf in rbd.frame_definitions(body))
 
     vis_data = Dict{CartesianFrame3D, Vector{GeometryData}}()
     for vertex in vertices(tree)

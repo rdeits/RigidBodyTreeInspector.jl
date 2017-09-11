@@ -1,5 +1,5 @@
 unique_frame_name(frame::CartesianFrame3D) =
-    Symbol("$(rbd.name(frame))_(#$(frame.id))")
+    Symbol("$(frame)_(#$(frame.id))")
 
 Base.@deprecate to_link_name(frame::CartesianFrame3D) unique_frame_name(frame)
 
@@ -17,7 +17,7 @@ function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::F
     body_names = Set{Symbol}()
     batch(vis) do v
         for body in bodies(mechanism)
-            body_name = Symbol(rbd.name(body))
+            body_name = Symbol(body)
             if body_name in body_names
                 error("Duplicate body name in mechanism")
             end
@@ -82,7 +82,7 @@ settransform!(vis::Visualizer, tform::rbd.Transform3D) = settransform!(vis, conv
 function settransform!(vis::Visualizer, state::MechanismState)
     batch(vis) do v
         for body in bodies(state.mechanism)
-            body_name = Symbol(rbd.name(body))
+            body_name = Symbol(body)
             if body_name in keys(v.core.tree[v.path].children)
                 settransform!(v[body_name], transform_to_root(state, body))
             end
