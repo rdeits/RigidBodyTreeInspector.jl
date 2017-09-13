@@ -44,7 +44,7 @@ end
 
 function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
     inertia = spatial_inertia(body)
-    com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com")
+    com_frame = CartesianFrame3D("$(string(body)) com")
     com_frame_to_inertia_frame = Transform3D(com_frame, inertia.frame, center_of_mass(inertia).v)
     add_frame!(body, com_frame_to_inertia_frame)
     inertia = transform(inertia, inv(com_frame_to_inertia_frame))
@@ -52,7 +52,7 @@ function inertial_ellipsoid(mechanism::Mechanism, body::RigidBody)
     axes[:,3] *= sign(dot(cross(axes[:,1], axes[:,2]), axes[:,3])) # Ensure the axes form a right-handed coordinate system
     radii = inertial_ellipsoid_dimensions(inertia.mass, principal_inertias)
     geometry = HyperEllipsoid{3, Float64}(zero(Point{3, Float64}), Vec{3, Float64}(radii))
-    principal_axes_com_frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) com principal axes")
+    principal_axes_com_frame = CartesianFrame3D("$(string(body)) com principal axes")
     inertia_frame_to_com_principal_axes_frame = Transform3D(inertia.frame, principal_axes_com_frame, inv(RotMatrix{3}(axes)), center_of_mass(inertia).v)
     add_frame!(body, inv(inertia_frame_to_com_principal_axes_frame))
     @assert begin
@@ -76,7 +76,7 @@ function create_frame_to_frame_geometry(mechanism, body, frame1, frame2, radius)
     joint_to_geometry_origin = compose(compose(LinearMap(Rx),
                                                Translation(geom_length / 2, 0, 0)),
                                        LinearMap(AngleAxis(pi/2, 0, 1, 0)))
-    frame = CartesianFrame3D("$(RigidBodyDynamics.name(body)) joint-to-joint translation")
+    frame = CartesianFrame3D("$(string(body)) joint-to-joint translation")
     tform = Transform3D(frame, joint_to_joint.to,
                         joint_to_geometry_origin.m,
                         joint_to_geometry_origin.v)
