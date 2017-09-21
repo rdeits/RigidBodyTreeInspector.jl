@@ -104,10 +104,10 @@ function Visualizer(mechanism::Mechanism, prefix=[:robot1];
     vis
 end
 
-function Visualizer(frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}},
+function Visualizer(mechanism::Mechanism, frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}},
                     prefix=[:robot1])
     vis = Visualizer()[prefix]
-    setgeometry!(vis, frame_geometries)
+    setgeometry!(vis, mechanism, frame_geometries)
     vis
 end
 
