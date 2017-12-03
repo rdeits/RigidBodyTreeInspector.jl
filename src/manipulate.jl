@@ -5,8 +5,8 @@ num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
 num_sliders(joint_type::JointType) = num_positions(joint_type)
 function slider_range(joint::RigidBodyDynamics.Joint)
     range = position_bounds(joint)
-    Bounds(isfinite(lower(range)) ? lower(range) : -10,
-           isfinite(upper(range)) ? upper(range) : 10)
+    Bounds(isfinite(lower(range)) ? lower(range) : -π,
+           isfinite(upper(range)) ? upper(range) : π)
 end
 
 
