@@ -3,10 +3,12 @@ using RigidBodyDynamics: Bounds, position_bounds, lower, upper
 joint_configuration(joint_type::JointType, sliders::NTuple) = collect(sliders)
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
 num_sliders(joint_type::JointType) = num_positions(joint_type)
+
+remove_infs(b::Bounds) = Bounds(isfinite(lower(b)) ? lower(b) : -π,
+                                isfinite(upper(b)) ? upper(b) : π)
+
 function slider_range(joint::RigidBodyDynamics.Joint)
-    range = position_bounds(joint)
-    Bounds(isfinite(lower(range)) ? lower(range) : -π,
-           isfinite(upper(range)) ? upper(range) : π)
+    remove_infs.(position_bounds(joint))
 end
 
 
