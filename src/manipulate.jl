@@ -1,6 +1,16 @@
+using RigidBodyDynamics: Bounds, position_bounds, lower, upper
+
 joint_configuration(joint_type::JointType, sliders::NTuple) = collect(sliders)
 num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
 num_sliders(joint_type::JointType) = num_positions(joint_type)
+
+remove_infs(b::Bounds) = Bounds(isfinite(lower(b)) ? lower(b) : -π,
+                                isfinite(upper(b)) ? upper(b) : π)
+
+function slider_range(joint::RigidBodyDynamics.Joint)
+    remove_infs.(position_bounds(joint))
+end
+
 
 """
 joint_configuration maps the slider values to a joint configuration vector.
@@ -17,6 +27,7 @@ function joint_configuration(joint_type::RigidBodyDynamics.QuaternionFloating,
     vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
 end
 num_sliders(joint_type::RigidBodyDynamics.QuaternionFloating) = 6
+slider_range(joint::RigidBodyDynamics.QuaternionFloating) = fill(Bounds(-π, π), 3)
 
 """
     manipulate!(callback::Function, state::MechanismState)
@@ -34,8 +45,9 @@ function manipulate!(callback::Function, state::MechanismState)
             push!(slider_names, "$(joint.name).$(j)")
         end
     end
+    slider_ranges = [r for joint in mech_joints for r in slider_range(joint)]
 
-    widgets = [Interact.widget(linspace(-pi, pi, 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
+    widgets = [Interact.widget(linspace(lower(slider_ranges[i]), upper(slider_ranges[i]), 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
     foreach(display, widgets)
     foreach(map(Interact.signal, widgets)...) do q...
         slider_index = 1
