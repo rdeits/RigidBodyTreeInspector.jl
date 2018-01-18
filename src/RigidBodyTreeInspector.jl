@@ -37,6 +37,7 @@ import LightXML: XMLElement, parse_file, root, get_elements_by_tagname,
                  attribute, find_element, name
 import Rotations
 import MeshIO
+import LoopThrottle: @throttle
 
 const rbd = RigidBodyDynamics
 
