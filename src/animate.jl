@@ -23,7 +23,7 @@ end
     animate(vis::Visualizer, mechanism::Mechanism{Float64},
             times::Vector{Float64},
             configurations::Vector{Vector{Float64}};
-            fps::Float64=30, realtimerate::Float64=1)
+            fps::Float64=60, realtimerate::Float64=1.)
 
 Animate the given mechanism passing through a time-coded series of
 configurations by linearly interpolating the configuration vectors.
@@ -31,24 +31,25 @@ configurations by linearly interpolating the configuration vectors.
 function animate(vis::Visualizer, mechanism::Mechanism{Float64},
                  times::Vector{Float64},
                  configurations::Vector{Vector{Float64}};
-                 fps::Float64 = 30., realtimerate::Float64 = 1.)
-    state = MechanismState{Float64}(mechanism)
-    dt = 1. / fps
+                 fps::Float64 = 60., realtimerate::Float64 = 1.)
+    @assert fps > 0
+    @assert 0 < realtimerate < Inf
+
+    state = MechanismState(mechanism)
     interp_values = InterpolatableArray{Vector{Float64}}[InterpolatableArray(c) for c in configurations]
     interpolated_configurations = interpolate((times,), interp_values, Gridded(Linear()))
-    for t in times[1] : dt : times[end]
-        tic()
+    t0, tf = first(times), last(times)
+    framenum = 0
+    walltime0 = time()
+    @throttle framenum while true
+        t = min(tf, t0 + (time() - walltime0) * realtimerate)
         q = interpolated_configurations[t]
-        for joint in tree_joints(mechanism)
-            q_range = RigidBodyDynamics.configuration_range(state, joint)
-            q_joint = q[q_range]
-            normalize_configuration!(joint_type(joint), q_joint)
-            configuration(state, joint)[:] = q_joint
-        end
-        setdirty!(state)
+        set_configuration!(state, q)
+        RigidBodyDynamics.normalize_configuration!(state)
         settransform!(vis, state)
-        sleep(max(dt - toq(), 0) / realtimerate)
-    end
+        framenum += 1
+        t == tf && break
+    end max_rate = fps
 end
 
 animate(mechanism::Mechanism, times::Vector{Float64},
