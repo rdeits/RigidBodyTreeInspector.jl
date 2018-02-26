@@ -30,13 +30,13 @@ configurations by linearly interpolating the configuration vectors.
 """
 function animate(vis::Visualizer, mechanism::Mechanism{Float64},
                  times::Vector{Float64},
-                 configurations::Vector{Vector{Float64}};
+                 configurations::AbstractVector{<:AbstractVector{Float64}};
                  fps::Float64 = 60., realtimerate::Float64 = 1.)
     @assert fps > 0
     @assert 0 < realtimerate < Inf
 
     state = MechanismState(mechanism)
-    interp_values = InterpolatableArray{Vector{Float64}}[InterpolatableArray(c) for c in configurations]
+    interp_values = [InterpolatableArray(c) for c in configurations]
     interpolated_configurations = interpolate((times,), interp_values, Gridded(Linear()))
     t0, tf = first(times), last(times)
     framenum = 0
