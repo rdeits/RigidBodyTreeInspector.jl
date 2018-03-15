@@ -19,12 +19,11 @@ branches:
 matrix:
   allow_failures:
     - julia: nightly
-
-before_install:
-  - mkdir -p $HOME/locomotion
-  - git clone --depth=1 https://github.com/RobotLocomotion/drake.git $HOME/locomotion/drake-distro
 script:
  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
- - julia -e 'Pkg.clone(pwd()); Pkg.build("RigidBodyTreeInspector"); Pkg.test("RigidBodyTreeInspector"; coverage=true)';
+ - julia -e 'Pkg.clone(pwd())'
+ - julia -e 'Pkg.checkout("DrakeVisualizer")'
+ - julia -e 'Pkg.checkout("MechanismGeometries")'
+ - julia -e 'Pkg.build("RigidBodyTreeInspector"); Pkg.test("RigidBodyTreeInspector"; coverage=true)';
 after_success:
   - julia -e 'cd(Pkg.dir("RigidBodyTreeInspector")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
