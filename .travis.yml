@@ -21,9 +21,10 @@ matrix:
     - julia: nightly
 script:
  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+ - julia -e 'Pkg.init()'
+ - julia -e 'Pkg.add("DrakeVisualizer"); Pkg.checkout("DrakeVisualizer")'
+ - julia -e 'Pkg.add("MechanismGeometries"); Pkg.checkout("MechanismGeometries")'
  - julia -e 'Pkg.clone(pwd())'
- - julia -e 'Pkg.checkout("DrakeVisualizer")'
- - julia -e 'Pkg.checkout("MechanismGeometries")'
  - julia -e 'Pkg.build("RigidBodyTreeInspector"); Pkg.test("RigidBodyTreeInspector"; coverage=true)';
 after_success:
   - julia -e 'cd(Pkg.dir("RigidBodyTreeInspector")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
