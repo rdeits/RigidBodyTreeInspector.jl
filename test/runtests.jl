@@ -40,6 +40,13 @@ end
     vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
 end
 
+@testset "visualizer constructor" begin
+    urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
+    mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
+    vis = Visualizer(mechanism, parse_urdf(urdf, mechanism))
+end
+
+
 test_notebook(notebook) =
     run(`$(IJulia.jupyter) nbconvert --to notebook --execute $notebook`)
 

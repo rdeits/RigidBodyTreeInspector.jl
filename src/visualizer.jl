@@ -110,18 +110,24 @@ for every link.
 """
 function Visualizer(mechanism::Mechanism, prefix=[:robot1];
                     show_inertias::Bool=false, randomize_colors::Bool=true)
-    frame_geoms = create_geometry(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+    source = Skeleton(inertias=show_inertias, randomize_colors=randomize_colors)
+    Visualizer(mechanism, source, prefix)
+end
+
+function Visualizer(mechanism::Mechanism, elements::AbstractVector{<:VisualElement},
+                    prefix=[:robot1])
     vis = Visualizer()[prefix]
-    setgeometry!(vis, mechanism, frame_geoms)
+    setgeometry!(vis, mechanism, elements)
     vis
 end
 
-function Visualizer(mechanism::Mechanism, frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}},
-                    prefix=[:robot1])
+function Visualizer(mechanism::Mechanism, source::AbstractGeometrySource, prefix=[:robot1])
+    elements = visual_elements(mechanism, source)
     vis = Visualizer()[prefix]
-    setgeometry!(vis, mechanism, frame_geometries)
+    setgeometry!(vis, mechanism, elements)
     vis
 end
+
 
 convert(::Type{AffineMap}, T::Transform3D) =
     AffineMap(rotation(T), translation(T))
