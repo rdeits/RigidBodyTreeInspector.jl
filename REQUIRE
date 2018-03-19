@@ -1,6 +1,7 @@
 julia 0.6
 CoordinateTransformations 0.4.1
 DrakeVisualizer 0.3.0
+GeometryTypes 0.4.0
 Interact 0.3.5
 Interpolations 0.3.6
 LoopThrottle 0.0.1
