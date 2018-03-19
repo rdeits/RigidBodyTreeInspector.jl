@@ -1,19 +1,51 @@
 unique_frame_name(frame::CartesianFrame3D) =
     Symbol("$(frame)_(#$(frame.id))")
 
-Base.@deprecate to_link_name(frame::CartesianFrame3D) unique_frame_name(frame)
+function setgeometry!(vis::Visualizer, mechanism::Mechanism, source::AbstractGeometrySource=Skeleton(false, true))
+    elements = visual_elements(mechanism, source)
+    setgeometry!(vis, mechanism, elements)
+end
 
-const FrameGeometries = Associative{CartesianFrame3D, <:AbstractVector}
-
-function setgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::FrameGeometries=create_geometry(mechanism))
+function setgeometry!(vis::Visualizer, mechanism::Mechanism, elements::AbstractVector{<:VisualElement})
     batch(vis) do v
         delete!(v)
-        addgeometry!(vis, mechanism, frame_geometries)
+        addgeometry!(vis, mechanism, elements)
     end
     nothing
 end
 
-function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::FrameGeometries=create_geometry(mechanism))
+
+apply_scaling(geometry::HyperSphere, scale::Vec) = HyperEllipsoid(center(geometry), scale) 
+apply_scaling(geometry, scale) = error("Geometry $geometry has a non-unit scale: $scale, but I don't know how to transform it into a scaled geometry automatically.")
+
+"""
+The remote tree viewer interface has no notion of scale
+(only a quaternion and translation), so we have to do some
+monkey business to push the scaling into the geometry itself.
+
+Currently, this only works for converting spheres into ellipsoids
+and assumes the scaling is positive. 
+"""
+function remove_scaling(geometry, transform)
+    H = [transform_deriv(transform, Vec(0., 0, 0)) transform(Vec(0., 0, 0));
+    Vec(0, 0, 0, 1)']
+    scale = Vec(norm(H[1:3, 1]), norm(H[1:3, 2]), norm(H[1:3, 3]))
+    if norm(scale - Vec(1, 1, 1)) > 1e-3
+        H[:,1] ./= scale[1]
+        H[:,2] ./= scale[2]
+        H[:,3] ./= scale[3]
+        tform = AffineMap(H[1:3, 1:3], transform(Vec(0., 0, 0)))
+        return apply_scaling(geometry, scale), tform
+    else
+        return geometry, transform
+    end
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, elements::AbstractVector{<:VisualElement})
+    frame_to_elements = Dict{CartesianFrame3D, Vector{VisualElement}}()
+    for element in elements
+        push!(get!(() -> VisualElement[], frame_to_elements, element.frame), element)
+    end
     body_names = Set{Symbol}()
     batch(vis) do v
         for body in bodies(mechanism)
@@ -27,10 +59,12 @@ function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::F
             for transform in rbd.frame_definitions(body)
                 frame = transform.from
                 framename = unique_frame_name(frame)
-                if haskey(frame_geometries, frame)
+                if haskey(frame_to_elements, frame)
                     found_geometry = true
-                    for geometry in frame_geometries[frame]
-                        addgeometry!(bodyvis[framename], geometry)
+                    for element in frame_to_elements[frame]
+                        geometry, transform = remove_scaling(element.geometry, element.transform)
+                        geomdata = GeometryData(geometry, element.color, transform)
+                        addgeometry!(bodyvis[framename], geomdata)
                     end
                     settransform!(bodyvis[framename], rbd.frame_definition(body, frame))
                 end
@@ -44,7 +78,7 @@ function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame_geometries::F
 end
 
 function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geometry)
-    addgeometry!(vis, mechanism, Dict(frame => [geometry]))
+    addgeometry!(vis, mechanism, [VisualElement(frame, geometry, RGBA{Float32}(1, 0, 0, 0.5), IdentityTransformation())])
 end
 
 function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D; scale=1.0)
@@ -53,28 +87,6 @@ end
 
 function addgeometry!(vis::Visualizer, mechanism::Mechanism, point::Point3D; radius=0.03)
     addgeometry!(vis, mechanism, point.frame, HyperSphere(Point{3, Float64}(point.v), radius))
-end
-
-function setgeometry!(vis::Visualizer,
-                      frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}})
-    error("""
-setgeometry!(vis, frame_geometries) has been updated to take the Mechanism
-object as its second argument. Please call it using the syntax:
-
-    setgeometry!(vis, mechanism, frame_geometries)
-
-For example, if you were previously doing
-
-    setgeometry!(vis, create_geometry(mechanism))
-
-you should now call:
-
-    setgeometry!(vis, mechanism, create_geometry(mechanism))
-
-which is equivalent to the new, simpler version:
-
-    setgeometry!(vis, mechanism)
-""")
 end
 
 settransform!(vis::Visualizer, tform::rbd.Transform3D) = settransform!(vis, convert(AffineMap, tform))
@@ -98,18 +110,24 @@ for every link.
 """
 function Visualizer(mechanism::Mechanism, prefix=[:robot1];
                     show_inertias::Bool=false, randomize_colors::Bool=true)
-    frame_geoms = create_geometry(mechanism; show_inertias=show_inertias, randomize_colors=randomize_colors)
+    source = Skeleton(inertias=show_inertias, randomize_colors=randomize_colors)
+    Visualizer(mechanism, source, prefix)
+end
+
+function Visualizer(mechanism::Mechanism, elements::AbstractVector{<:VisualElement},
+                    prefix=[:robot1])
     vis = Visualizer()[prefix]
-    setgeometry!(vis, mechanism, frame_geoms)
+    setgeometry!(vis, mechanism, elements)
     vis
 end
 
-function Visualizer(mechanism::Mechanism, frame_geometries::Associative{CartesianFrame3D, Vector{GeometryData}},
-                    prefix=[:robot1])
+function Visualizer(mechanism::Mechanism, source::AbstractGeometrySource, prefix=[:robot1])
+    elements = visual_elements(mechanism, source)
     vis = Visualizer()[prefix]
-    setgeometry!(vis, mechanism, frame_geometries)
+    setgeometry!(vis, mechanism, elements)
     vis
 end
+
 
 convert(::Type{AffineMap}, T::Transform3D) =
     AffineMap(rotation(T), translation(T))
@@ -121,12 +139,14 @@ end
 function inspect!(state::MechanismState;
         show_inertias::Bool=false, randomize_colors::Bool=true)
     vis = Visualizer()[:robot1]
-    setgeometry!(vis, state.mechanism,
-                 create_geometry(state.mechanism;
-                                 show_inertias=show_inertias,
-                                 randomize_colors=randomize_colors))
+    elements = visual_elements(state.mechanism, Skeleton(show_inertias, randomize_colors))
+    setgeometry!(vis, state.mechanism, elements)
     inspect!(state, vis)
 end
 
 inspect(mechanism::Mechanism, args...; kwargs...) =
     inspect!(MechanismState{Float64}(mechanism), args...; kwargs...)
+
+@deprecate parse_urdf(urdf::AbstractString, mechanism::Mechanism; kwargs...) visual_elements(mechanism, URDFVisuals(urdf; kwargs...))
+
+@deprecate create_geometry(mechanism; show_inertias=false, randomize_colors=true) visual_elements(mechanism, Skeleton(inertias=show_inertias, randomize_colors=randomize_colors))

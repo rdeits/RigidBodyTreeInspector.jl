@@ -40,14 +40,17 @@ end
     vis = RigidBodyTreeInspector.parse_urdf(urdf, mechanism)
 end
 
+@testset "visualizer constructor" begin
+    urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
+    mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
+    vis = Visualizer(mechanism, parse_urdf(urdf, mechanism))
+end
+
+
 test_notebook(notebook) =
-    run(`$(IJulia.jupyter) nbconvert --to notebook --execute $notebook --output $notebook`)
+    run(`$(IJulia.jupyter) nbconvert --to notebook --execute $notebook`)
 
 @testset "notebooks" begin
     test_notebook("../examples/demo.ipynb")
-
-    if isfile(get(ENV, "DRAKE_DISTRO", "")) || isfile(joinpath(ENV["HOME"], "locomotion", "drake-distro"))
-        # Only run this test on my machine or on my Travis build
-        test_notebook("../examples/urdf.ipynb")
-    end
+    test_notebook("../examples/urdf.ipynb")
 end
