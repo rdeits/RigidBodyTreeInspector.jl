@@ -15,7 +15,7 @@ function setgeometry!(vis::Visualizer, mechanism::Mechanism, elements::AbstractV
 end
 
 
-apply_scaling(geometry::HyperSphere, scale::Vec) = HyperEllipsoid(center(geometry), scale) 
+apply_scaling(geometry::HyperSphere, scale::Vec) = HyperEllipsoid(center(geometry), scale)
 apply_scaling(geometry, scale) = error("Geometry $geometry has a non-unit scale: $scale, but I don't know how to transform it into a scaled geometry automatically.")
 
 """
@@ -24,7 +24,7 @@ The remote tree viewer interface has no notion of scale
 monkey business to push the scaling into the geometry itself.
 
 Currently, this only works for converting spheres into ellipsoids
-and assumes the scaling is positive. 
+and assumes the scaling is positive.
 """
 function remove_scaling(geometry, transform)
     H = [transform_deriv(transform, Vec(0., 0, 0)) transform(Vec(0., 0, 0));
@@ -77,7 +77,7 @@ function addgeometry!(vis::Visualizer, mechanism::Mechanism, elements::AbstractV
     nothing
 end
 
-function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geometry)
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geometry::Union{AbstractGeometry, AbstractMesh})
     addgeometry!(vis, mechanism, [VisualElement(frame, geometry, RGBA{Float32}(1, 0, 0, 0.5), IdentityTransformation())])
 end
 
@@ -87,6 +87,10 @@ end
 
 function addgeometry!(vis::Visualizer, mechanism::Mechanism, point::Point3D; radius=0.03)
     addgeometry!(vis, mechanism, point.frame, HyperSphere(Point{3, Float64}(point.v), radius))
+end
+
+function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geomdata::GeometryData)
+    addgeometry!(vis, mechanism, [VisualElement(frame, geomdata.geometry, geomdata.color, geomdata.transform)])
 end
 
 settransform!(vis::Visualizer, tform::rbd.Transform3D) = settransform!(vis, convert(AffineMap, tform))

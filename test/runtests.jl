@@ -1,6 +1,9 @@
 using Base.Test
 using RigidBodyTreeInspector
 using RigidBodyDynamics
+using DrakeVisualizer
+using CoordinateTransformations
+using Colors
 using IJulia
 
 @testset "chain mechanism" begin
@@ -44,6 +47,16 @@ end
     urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
     mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
     vis = Visualizer(mechanism, parse_urdf(urdf, mechanism))
+end
+
+@testset "geometry additions" begin
+    urdf = joinpath(dirname(@__FILE__), "..", "examples", "urdf", "Acrobot.urdf")
+    mechanism = RigidBodyDynamics.parse_urdf(Float64, urdf)
+    vis = Visualizer(mechanism, parse_urdf(urdf, mechanism))
+    addgeometry!(vis, mechanism, default_frame(bodies(mechanism)[2]))
+    addgeometry!(vis, mechanism, Point3D(default_frame(bodies(mechanism)[2]), 0.1, 0.1, 0.1))
+    addgeometry!(vis, mechanism, default_frame(bodies(mechanism)[3]), HyperSphere(Point(0., 0, 0), 0.05))
+    addgeometry!(vis, mechanism, default_frame(bodies(mechanism)[3]), GeometryData(HyperSphere(Point(0., 0, 0), 0.05), RGBA(0, 1, 0, 0.5), Translation(0.1, 0, 0)))
 end
 
 
