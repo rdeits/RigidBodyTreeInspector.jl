@@ -3,7 +3,7 @@ using RigidBodyTreeInspector
 using RigidBodyDynamics
 using DrakeVisualizer
 using CoordinateTransformations
-using Colors
+using ColorTypes
 using IJulia
 
 @testset "chain mechanism" begin
