@@ -9,3 +9,4 @@ MechanismGeometries 0.0.2
 RigidBodyDynamics 0.5
 Rotations 0.5
 StaticArrays 0.5
+Compat 0.61 0.62
