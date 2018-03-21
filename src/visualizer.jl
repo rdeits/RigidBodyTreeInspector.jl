@@ -90,7 +90,7 @@ function addgeometry!(vis::Visualizer, mechanism::Mechanism, point::Point3D; rad
 end
 
 function addgeometry!(vis::Visualizer, mechanism::Mechanism, frame::CartesianFrame3D, geomdata::GeometryData)
-    addgeometry!(vis, mechanism, [VisualElement(frame, geomdata.geometry, geomdata.color, geomdata.transform)])
+    addgeometry!(vis, mechanism, [VisualElement(frame, geomdata.geometry, convert(RGBA{Float32}, geomdata.color), geomdata.transform)])
 end
 
 settransform!(vis::Visualizer, tform::rbd.Transform3D) = settransform!(vis, convert(AffineMap, tform))
