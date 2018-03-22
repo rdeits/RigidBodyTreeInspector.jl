@@ -1,5 +1,6 @@
 julia 0.6
 ColorTypes 0.2.0
+Compat 0.62.1 # needed for https://github.com/JuliaLang/Compat.jl/issues/523
 CoordinateTransformations 0.4.1
 DrakeVisualizer 0.3.0
 GeometryTypes 0.4.0
@@ -10,4 +11,3 @@ MechanismGeometries 0.0.2
 RigidBodyDynamics 0.5
 Rotations 0.5
 StaticArrays 0.5
-Compat 0.61 0.62
