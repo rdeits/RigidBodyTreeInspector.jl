@@ -1,33 +1,59 @@
+module Manipulate
+
+export manipulate!
+
+using RigidBodyTreeInspector
+using DrakeVisualizer
+using RigidBodyDynamics
 using RigidBodyDynamics: Bounds, position_bounds, lower, upper
+using InteractBase: slider, Widget, observe, vbox
+using DataStructures: OrderedDict
 
-joint_configuration(joint_type::JointType, sliders::NTuple) = collect(sliders)
-num_sliders(joint::RigidBodyDynamics.Joint) = num_sliders(joint_type(joint))
-num_sliders(joint_type::JointType) = num_positions(joint_type)
-
-remove_infs(b::Bounds) = Bounds(isfinite(lower(b)) ? lower(b) : -π,
-                                isfinite(upper(b)) ? upper(b) : π)
-
-function slider_range(joint::RigidBodyDynamics.Joint)
-    remove_infs.(position_bounds(joint))
+function remove_infs(b::Bounds, default=Float64(π))
+    Bounds(isfinite(lower(b)) ? lower(b) : -default,
+           isfinite(upper(b)) ? upper(b) : default)
 end
 
-
-"""
-joint_configuration maps the slider values to a joint configuration vector.
-For a quaternion floating joint, this is nontrivial because we create three
-sliders for the rotational degrees of freedom, which are used to represent
-the rotation in exponential map form. Those three sliders then have to be
-converted into a quaternion to set the joint configuration. We do this because
-interacting with the four components of a quaternion is quite unintuitive.
-"""
-function joint_configuration(joint_type::RigidBodyDynamics.QuaternionFloating,
-                             sliders::NTuple{6, T}) where T
-    q = collect(sliders)
-    quat = Quat(RodriguesVec(q[1], q[2], q[3]))
-    vcat([quat.w; quat.x; quat.y; quat.z], q[4:6])
+slider_range(joint::Joint) = remove_infs.(position_bounds(joint))
+function slider_range(joint::Joint{T, <: QuaternionFloating}) where {T}
+    defaults = [1., 1, 1, 1, 10, 10, 10]
+    remove_infs.(position_bounds(joint), defaults)
 end
-num_sliders(joint_type::RigidBodyDynamics.QuaternionFloating) = 6
-slider_range(joint::RigidBodyDynamics.QuaternionFloating) = fill(Bounds(-π, π), 3)
+
+slider_labels(joint::Joint) = [string("q", i) for i in 1:num_positions(joint)]
+slider_labels(joint::Joint{T, <:QuaternionFloating}) where {T} = ["rw", "rx", "ry", "rz", "x", "y", "z"]
+
+function sliders(joint::Joint, values=zeros(num_positions(joint));
+                 bounds=slider_range(joint),
+                 labels=slider_labels(joint),
+                 resolution=0.01, prefix="")
+    map(bounds, labels, values) do b, label, value
+        slider(lower(b):resolution:upper(b),
+               value=value,
+               label=string(prefix, label))
+    end
+end
+
+function combined_observable(joint::Joint, sliders::AbstractVector)
+    map(observe.(sliders)...) do args...
+        q = vcat(args...)
+        normalize_configuration!(q, joint)
+        q
+    end
+end
+
+function widget(joint::Joint{T, <:Fixed}, args...) where T
+    Widget{:rbd_joint}()
+end
+
+function widget(joint::Joint, initial_value=zeros(num_positions(joint)); prefix=string(joint, '.'))
+    s = sliders(joint, initial_value, prefix=prefix)
+    keys = Symbol.(slider_labels(joint))
+    w = Widget{:rbd_joint}(OrderedDict(zip(keys, s)))
+    w.output = combined_observable(joint, s)
+    w.layout = x -> vbox(s...)
+    w
+end
 
 """
     manipulate!(callback::Function, state::MechanismState)
@@ -36,29 +62,20 @@ Create Interact sliders to manipulate the state of the mechanism, and call
 callback(state) each time a slider is changed. This mutates the state in-place.
 """
 function manipulate!(callback::Function, state::MechanismState)
-    mechanism = state.mechanism
-    mech_joints = tree_joints(mechanism)
-    num_sliders_per_joint = map(num_sliders, mech_joints)
-    slider_names = String[]
-    for (i, joint) in enumerate(mech_joints)
-        for j in 1:num_sliders_per_joint[i]
-            push!(slider_names, "$(joint.name).$(j)")
+    joint_list = joints(state.mechanism)
+    widgets = widget.(joint_list, configuration.(state, joint_list))
+    keys = Symbol.(joint_list)
+    w = Widget{:rbd_manipulator}(OrderedDict(zip(keys, widgets)))
+    w.output = map(observe.(widgets)...) do signals...
+        for i in 1:length(joint_list)
+            if num_positions(joint_list[i]) > 0
+                set_configuration!(state, joint_list[i], signals[i])
+            end
         end
-    end
-    slider_ranges = [r for joint in mech_joints for r in slider_range(joint)]
-
-    widgets = [Interact.widget(linspace(lower(slider_ranges[i]), upper(slider_ranges[i]), 51), slider_names[i]) for i = 1:sum(num_sliders_per_joint)]
-    foreach(display, widgets)
-    foreach(map(Interact.signal, widgets)...) do q...
-        slider_index = 1
-        for (i, joint) in enumerate(mech_joints)
-            configuration(state, joint)[:] = joint_configuration(joint_type(joint), q[slider_index:(slider_index+num_sliders_per_joint[i]-1)])
-            slider_index += num_sliders_per_joint[i]
-        end
-        setdirty!(state)
         callback(state)
     end
-    return
+    w.layout = x -> vbox(widgets...)
+    w
 end
 
 """
@@ -70,3 +87,7 @@ MechanismState object to mutate internally.
 """
 manipulate(callback::Function, mechanism::Mechanism) =
     manipulate(callback, MechanismState{Float64}(mechanism))
+
+end
+
+

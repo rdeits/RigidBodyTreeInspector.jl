@@ -2,9 +2,9 @@ __precompile__()
 
 module RigidBodyTreeInspector
 
+using LinearAlgebra
 using RigidBodyDynamics
-using RigidBodyDynamics: OdeIntegrators
-import RigidBodyDynamics: parse_urdf  # deprecated import, will eventually be removed
+using RigidBodyDynamics.OdeIntegrators
 import DrakeVisualizer: Visualizer,
                         settransform!,
                         setgeometry!,
@@ -24,12 +24,11 @@ using GeometryTypes: AbstractGeometry,
                      HyperSphere,
                      Vec, Point
 using ColorTypes: RGBA
-import Interact
 import Interpolations: interpolate, Linear, Gridded
 import Base: convert, *, one
 import Rotations
 import LoopThrottle: @throttle
-using MechanismGeometries: VisualElement, Skeleton, AbstractGeometrySource, 
+using MechanismGeometries: VisualElement, Skeleton, AbstractGeometrySource,
                            visual_elements, URDFVisuals
 
 const rbd = RigidBodyDynamics
@@ -52,6 +51,7 @@ export manipulate,
        URDFVisuals
 
 include("manipulate.jl")
+using .Manipulate
 include("visualizer.jl")
 include("animate.jl")
 include("ode_callback.jl")

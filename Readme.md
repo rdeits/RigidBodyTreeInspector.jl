@@ -3,6 +3,12 @@
 [![Build Status](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl.svg?branch=master)](https://travis-ci.org/rdeits/RigidBodyTreeInspector.jl)
 [![codecov.io](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl/coverage.svg?branch=master)](https://codecov.io/github/rdeits/RigidBodyTreeInspector.jl?branch=master)
 
+---
+
+**Note:** This package should still work, but development has moved to [MeshCatMechanisms.jl](https://github.com/JuliaRobotics/MeshCatMechanisms.jl) which offers more features and fewer binary dependencies. New users are encouraged to use MeshCatMechanisms.jl instead of this package.
+
+---
+
 This package provides a simple tool for inspecting and manipulating the kinematic structure of a robot inside of an [IJulia](https://github.com/JuliaLang/IJulia.jl) notebook. It relies on several other packages to provide this functionality:
 
 * [tkoolen/RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl) to parse and represent kinematic structures
