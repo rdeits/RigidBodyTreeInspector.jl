@@ -150,7 +150,3 @@ end
 
 inspect(mechanism::Mechanism, args...; kwargs...) =
     inspect!(MechanismState{Float64}(mechanism), args...; kwargs...)
-
-@deprecate parse_urdf(urdf::AbstractString, mechanism::Mechanism; kwargs...) visual_elements(mechanism, URDFVisuals(urdf; kwargs...))
-
-@deprecate create_geometry(mechanism; show_inertias=false, randomize_colors=true) visual_elements(mechanism, Skeleton(inertias=show_inertias, randomize_colors=randomize_colors))
