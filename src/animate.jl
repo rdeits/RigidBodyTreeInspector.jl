@@ -43,7 +43,7 @@ function animate(vis::Visualizer, mechanism::Mechanism{Float64},
     walltime0 = time()
     @throttle framenum while true
         t = min(tf, t0 + (time() - walltime0) * realtimerate)
-        q = interpolated_configurations[t]
+        q = interpolated_configurations(t)
         set_configuration!(state, q)
         RigidBodyDynamics.normalize_configuration!(state)
         settransform!(vis, state)

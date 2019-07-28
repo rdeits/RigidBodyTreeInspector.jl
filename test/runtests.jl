@@ -40,7 +40,7 @@ end
     vis = Visualizer(mechanism, URDFVisuals(urdf))
     remove_fixed_tree_joints!(mechanism)
     vis = Visualizer(mechanism, URDFVisuals(urdf))
-    mechanism, _ = submechanism(mechanism, bodies(mechanism)[2])
+    mechanism = submechanism(mechanism, bodies(mechanism)[2])
     vis = Visualizer(mechanism, URDFVisuals(urdf))
 end
 
